@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>بازی مار (Snake)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>🐍 بازی مار</h1>
+<div id="scoreBoard">
+  <div>امتیاز: <span id="score">0</span></div>
+  <div>بهترین: <span id="highScore">0</span></div>
+</div>
+
+<div id="playArea">
+  <div id="canvasWrap">
+    <canvas id="gameCanvas" width="640" height="640"></canvas>
+  </div>
+  <aside id="statsBox">
+    <div id="statsTime">
+      <div class="stats-label">زمان زنده ماندن</div>
+      <div id="aliveTime">00:00</div>
+    </div>
+    <div class="stats-row apple">
+      <span>🍎 سیب خورده‌شده</span>
+      <strong id="appleCount">0</strong>
+    </div>
+    <div class="stats-row harmful-total">
+      <span>🚫 خوراکی های مضر</span>
+      <strong id="harmfulCount">0</strong>
+    </div>
+    <div class="stats-sub">
+      <div class="stats-row">
+        <span>بطری آب معدنی</span>
+        <strong id="bottleCount">0</strong>
+      </div>
+      <div class="stats-row">
+        <span>کیسه پلاستیکی</span>
+        <strong id="bagCount">0</strong>
+      </div>
+      <div class="stats-row">
+        <span>قوطی کنسرو</span>
+        <strong id="canCount">0</strong>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div id="legend">
+  <div>🍎 سیب = رشد و امتیاز</div>
+  <div><span>🚫</span> بطری، کیسه پلاستیکی، قوطی کنسرو = کم شدن ۲ واحد از طول مار</div>
+</div>
+
+<div class="hint" id="hintText">برای شروع، یک جهت را با کلیدهای جهت‌دار یا WASD فشار دهید</div>
+
+<div id="controls">
+  <button id="up">▲</button>
+  <button id="left">◀</button>
+  <button id="down">▼</button>
+  <button id="right">▶</button>
+</div>
+
+<div id="overlay">
+  <h2>باختی! 💥</h2>
+  <p id="finalScore">امتیاز نهایی: 0</p>
+  <button id="restartBtn">بازی مجدد</button>
+</div>
+
+<script src="game.js"></script>
+
+</body>
+</html>

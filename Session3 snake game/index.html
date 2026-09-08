@@ -11,6 +11,7 @@
 <div id="scoreBoard">
   <div>امتیاز: <span id="score">0</span></div>
   <div>بهترین: <span id="highScore">0</span></div>
+  <div class="gems-stat">💎 الماس: <span id="gemCount">0</span></div>
 </div>
 
 <div id="playArea">
@@ -30,20 +31,6 @@
       <span>🚫 خوراکی های مضر</span>
       <strong id="harmfulCount">0</strong>
     </div>
-    <div class="stats-sub">
-      <div class="stats-row">
-        <span>بطری آب معدنی</span>
-        <strong id="bottleCount">0</strong>
-      </div>
-      <div class="stats-row">
-        <span>کیسه پلاستیکی</span>
-        <strong id="bagCount">0</strong>
-      </div>
-      <div class="stats-row">
-        <span>قوطی کنسرو</span>
-        <strong id="canCount">0</strong>
-      </div>
-    </div>
 
     <div class="stats-section">
       <div class="stats-label">سطح بازی</div>
@@ -60,24 +47,61 @@
       <div class="theme-row" id="themeChoices">
         <button type="button" class="theme-btn active" data-theme="classic">
           <span class="theme-swatch swatch-classic"></span>
-          معمولی
+          <span class="theme-meta">
+            <span class="theme-name">معمولی</span>
+            <span class="theme-status"></span>
+          </span>
         </button>
         <button type="button" class="theme-btn" data-theme="ice">
           <span class="theme-swatch swatch-ice"></span>
-          آبی
+          <span class="theme-meta">
+            <span class="theme-name">آبی</span>
+            <span class="theme-status"></span>
+          </span>
         </button>
         <button type="button" class="theme-btn" data-theme="fire">
           <span class="theme-swatch swatch-fire"></span>
-          آتشی
+          <span class="theme-meta">
+            <span class="theme-name">آتشی</span>
+            <span class="theme-status"></span>
+          </span>
         </button>
       </div>
+    </div>
+
+    <div class="stats-section">
+      <div class="stats-label">تم زمین</div>
+      <div class="theme-row" id="groundChoices">
+        <button type="button" class="theme-btn active" data-ground="grass">
+          <span class="theme-swatch swatch-grass"></span>
+          <span class="theme-meta">
+            <span class="theme-name">چمن</span>
+            <span class="theme-status"></span>
+          </span>
+        </button>
+        <button type="button" class="theme-btn" data-ground="dirt">
+          <span class="theme-swatch swatch-dirt"></span>
+          <span class="theme-meta">
+            <span class="theme-name">خاکی</span>
+            <span class="theme-status"></span>
+          </span>
+        </button>
+        <button type="button" class="theme-btn" data-ground="hall">
+          <span class="theme-swatch swatch-hall"></span>
+          <span class="theme-meta">
+            <span class="theme-name">سالنی</span>
+            <span class="theme-status"></span>
+          </span>
+        </button>
+      </div>
+      <div class="choice-hint">امتیاز هر بازی به الماس تبدیل می‌شود</div>
     </div>
   </aside>
 </div>
 
 <div id="legend">
   <div>🍎 سیب = رشد و امتیاز</div>
-  <div><span>🚫</span> بطری، کیسه پلاستیکی، قوطی کنسرو = کم شدن ۲ واحد از طول مار</div>
+  <div><span>🚫</span> بطری، کیسه پلاستیکی، قوطی کنسرو = کم شدن ۲ واحد از طول مار و ۲۰ امتیاز</div>
 </div>
 
 <div class="hint" id="hintText">برای شروع، یک جهت را با کلیدهای جهت‌دار یا WASD فشار دهید</div>
@@ -92,8 +116,11 @@
 <div id="overlay">
   <h2>باختی! 💥</h2>
   <p id="finalScore">امتیاز نهایی: 0</p>
+  <p id="gemsEarned" class="gems-earned"></p>
   <button id="restartBtn">بازی مجدد</button>
 </div>
+
+<div id="shopToast" hidden></div>
 
 <script src="game.js"></script>
 

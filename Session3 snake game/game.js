@@ -4,6 +4,193 @@
   const gridSize = 32;
   const tileCount = canvas.width / gridSize;
   const S = gridSize / 20;
+
+  function makeRng(seed) {
+    let s = seed | 0;
+    return function rng() {
+      s = s + 0x6D2B79F5 | 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = t + Math.imul(t ^ (t >>> 7), 61 | t) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function shuffleInPlace(arr, rng) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      const tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function allTiles() {
+    const tiles = [];
+    for (let y = 0; y < tileCount; y++) {
+      for (let x = 0; x < tileCount; x++) {
+        tiles.push({ x, y });
+      }
+    }
+    return tiles;
+  }
+
+  function fillCheckerboard(g, colorA, colorB) {
+    for (let y = 0; y < tileCount; y++) {
+      for (let x = 0; x < tileCount; x++) {
+        g.fillStyle = (x + y) % 2 === 0 ? colorA : colorB;
+        g.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
+      }
+    }
+  }
+
+  function makeOffscreenCanvas() {
+    const off = document.createElement('canvas');
+    off.width = canvas.width;
+    off.height = canvas.height;
+    return off;
+  }
+
+  function paintGrassBackground(g) {
+    const rng = makeRng(0x6A55);
+    fillCheckerboard(g, '#2f5233', '#35592f');
+
+    const tiles = shuffleInPlace(allTiles(), rng);
+    const total = tiles.length;
+    const grassCount = Math.round(total * 0.15);
+    const flowerCount = Math.round(total * 0.02);
+    const grassTiles = tiles.slice(0, grassCount);
+    const flowerTiles = tiles.slice(grassCount, grassCount + flowerCount);
+
+    g.lineCap = 'round';
+    grassTiles.forEach(tile => {
+      const bladeCount = 1 + Math.floor(rng() * 3);
+      const originX = tile.x * gridSize;
+      const originY = tile.y * gridSize;
+      for (let i = 0; i < bladeCount; i++) {
+        const bx = originX + gridSize * (0.18 + rng() * 0.64);
+        const by = originY + gridSize * (0.78 + rng() * 0.16);
+        const h = gridSize * (0.12 + rng() * 0.14);
+        const tilt = (rng() - 0.5) * gridSize * 0.22;
+        g.beginPath();
+        g.moveTo(bx, by);
+        g.quadraticCurveTo(bx + tilt * 0.45, by - h * 0.5, bx + tilt, by - h);
+        g.strokeStyle = 'rgba(168, 196, 132, 0.18)';
+        g.lineWidth = 1;
+        g.stroke();
+      }
+    });
+
+    flowerTiles.forEach(tile => {
+      const fx = tile.x * gridSize + gridSize * (0.28 + rng() * 0.44);
+      const fy = tile.y * gridSize + gridSize * (0.42 + rng() * 0.4);
+      const petalR = gridSize * 0.055;
+      g.fillStyle = 'rgba(255, 250, 220, 0.2)';
+      for (let p = 0; p < 4; p++) {
+        const a = (Math.PI / 2) * p + 0.2;
+        g.beginPath();
+        g.arc(
+          fx + Math.cos(a) * petalR * 0.65,
+          fy + Math.sin(a) * petalR * 0.65,
+          petalR * 0.42,
+          0, Math.PI * 2
+        );
+        g.fill();
+      }
+      g.fillStyle = 'rgba(232, 210, 110, 0.18)';
+      g.beginPath();
+      g.arc(fx, fy, petalR * 0.28, 0, Math.PI * 2);
+      g.fill();
+    });
+  }
+
+  function paintDirtBackground(g) {
+    const rng = makeRng(0xD14);
+    fillCheckerboard(g, '#6b4a35', '#75503a');
+
+    const tiles = shuffleInPlace(allTiles(), rng);
+    const dirtCount = Math.round(tiles.length * 0.12);
+    const dirtTiles = tiles.slice(0, dirtCount);
+
+    dirtTiles.forEach(tile => {
+      const cx = tile.x * gridSize;
+      const cy = tile.y * gridSize;
+      const useCrack = rng() < 0.5;
+      if (useCrack) {
+        const x1 = cx + gridSize * (0.18 + rng() * 0.2);
+        const y1 = cy + gridSize * (0.55 + rng() * 0.3);
+        const x2 = cx + gridSize * (0.4 + rng() * 0.2);
+        const y2 = cy + gridSize * (0.35 + rng() * 0.25);
+        const x3 = cx + gridSize * (0.62 + rng() * 0.22);
+        const y3 = cy + gridSize * (0.5 + rng() * 0.28);
+        g.beginPath();
+        g.moveTo(x1, y1);
+        g.lineTo(x2, y2);
+        g.lineTo(x3, y3);
+        g.strokeStyle = 'rgba(48, 30, 18, 0.16)';
+        g.lineWidth = 0.8;
+        g.lineCap = 'round';
+        g.lineJoin = 'round';
+        g.stroke();
+      } else {
+        const ox = cx + gridSize * (0.35 + rng() * 0.3);
+        const oy = cy + gridSize * (0.4 + rng() * 0.3);
+        const rx = gridSize * (0.1 + rng() * 0.08);
+        const ry = rx * (0.55 + rng() * 0.25);
+        const grad = g.createRadialGradient(ox, oy, 0.5, ox, oy, rx);
+        grad.addColorStop(0, 'rgba(52, 32, 20, 0.2)');
+        grad.addColorStop(1, 'rgba(52, 32, 20, 0)');
+        g.fillStyle = grad;
+        g.beginPath();
+        g.ellipse(ox, oy, rx, ry, rng() * 0.6, 0, Math.PI * 2);
+        g.fill();
+      }
+    });
+  }
+
+  function paintHallBackground(g) {
+    fillCheckerboard(g, '#d8c9a8', '#c9b78f');
+
+    g.strokeStyle = 'rgba(90, 70, 40, 0.14)';
+    g.lineWidth = 1;
+    g.beginPath();
+    for (let i = 0; i <= tileCount; i++) {
+      const p = i * gridSize + 0.5;
+      g.moveTo(p, 0);
+      g.lineTo(p, canvas.height);
+      g.moveTo(0, p);
+      g.lineTo(canvas.width, p);
+    }
+    g.stroke();
+
+    const sheen = g.createLinearGradient(0, 0, canvas.width, canvas.height);
+    sheen.addColorStop(0, 'rgba(255,255,255,0.1)');
+    sheen.addColorStop(0.45, 'rgba(255,255,255,0.04)');
+    sheen.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = sheen;
+    g.fillRect(0, 0, canvas.width, canvas.height);
+
+    const vignette = g.createRadialGradient(
+      canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.28,
+      canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.72
+    );
+    vignette.addColorStop(0, 'rgba(40, 28, 12, 0)');
+    vignette.addColorStop(1, 'rgba(40, 28, 12, 0.14)');
+    g.fillStyle = vignette;
+    g.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  const bgBuffers = { grass: null, dirt: null, hall: null };
+
+  function rebuildBackgrounds() {
+    bgBuffers.grass = makeOffscreenCanvas();
+    bgBuffers.dirt = makeOffscreenCanvas();
+    bgBuffers.hall = makeOffscreenCanvas();
+    paintGrassBackground(bgBuffers.grass.getContext('2d'));
+    paintDirtBackground(bgBuffers.dirt.getContext('2d'));
+    paintHallBackground(bgBuffers.hall.getContext('2d'));
+  }
+
   const OBSTACLE_TYPES = ['bottle', 'bag', 'can'];
   const DIFFICULTIES = {
     easy: { apples: 2, harmful: 1, hint: '۲ سیب · ۱ مضر' },
@@ -39,6 +226,10 @@
       bodyDark: (shade) => `rgba(${170 * shade}, ${45 * shade}, 8, 1)`
     }
   };
+  const SNAKE_COSTS = { classic: 0, ice: 1000, fire: 1200 };
+  const GROUND_COSTS = { grass: 0, dirt: 800, hall: 1000 };
+  const GROUND_THEMES = ['grass', 'dirt', 'hall'];
+  const SAVE_KEY = 'canvas-snake-progress-v1';
   const INITIAL_SNAKE = [
     { x: 8, y: 10 },
     { x: 7, y: 10 },
@@ -62,21 +253,137 @@
   let aliveElapsedMs = 0;
   let difficulty = 'medium';
   let snakeTheme = 'classic';
+  let groundTheme = 'grass';
   let groundTrail = [];
   let emitParticles = [];
+  let gemsBankedThisRun = false;
+  let shopToastTimer = null;
 
   const scoreEl = document.getElementById('score');
   const highScoreEl = document.getElementById('highScore');
+  const gemCountEl = document.getElementById('gemCount');
   const overlay = document.getElementById('overlay');
   const finalScoreEl = document.getElementById('finalScore');
+  const gemsEarnedEl = document.getElementById('gemsEarned');
   const hintText = document.getElementById('hintText');
   const aliveTimeEl = document.getElementById('aliveTime');
   const appleCountEl = document.getElementById('appleCount');
   const harmfulCountEl = document.getElementById('harmfulCount');
-  const bottleCountEl = document.getElementById('bottleCount');
-  const bagCountEl = document.getElementById('bagCount');
-  const canCountEl = document.getElementById('canCount');
   const diffHintEl = document.getElementById('diffHint');
+  const shopToastEl = document.getElementById('shopToast');
+
+  function defaultProgress() {
+    return {
+      gems: 0,
+      highScore: 0,
+      unlockedSnake: ['classic'],
+      unlockedGround: ['grass'],
+      snakeTheme: 'classic',
+      groundTheme: 'grass'
+    };
+  }
+
+  function loadProgress() {
+    const fallback = defaultProgress();
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return fallback;
+      const data = JSON.parse(raw);
+      const unlockedSnake = Array.isArray(data.unlockedSnake)
+        ? data.unlockedSnake.filter(id => id in SNAKE_COSTS)
+        : [];
+      const unlockedGround = Array.isArray(data.unlockedGround)
+        ? data.unlockedGround.filter(id => GROUND_THEMES.includes(id))
+        : [];
+      if (!unlockedSnake.includes('classic')) unlockedSnake.unshift('classic');
+      if (!unlockedGround.includes('grass')) unlockedGround.unshift('grass');
+      const snakeNext = unlockedSnake.includes(data.snakeTheme) ? data.snakeTheme : 'classic';
+      const groundNext = unlockedGround.includes(data.groundTheme) ? data.groundTheme : 'grass';
+      return {
+        gems: Math.max(0, Math.floor(Number(data.gems) || 0)),
+        highScore: Math.max(0, Math.floor(Number(data.highScore) || 0)),
+        unlockedSnake,
+        unlockedGround,
+        snakeTheme: snakeNext,
+        groundTheme: groundNext
+      };
+    } catch (err) {
+      return fallback;
+    }
+  }
+
+  function saveProgress() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        gems: progress.gems,
+        highScore: highScore,
+        unlockedSnake: progress.unlockedSnake,
+        unlockedGround: progress.unlockedGround,
+        snakeTheme: snakeTheme,
+        groundTheme: groundTheme
+      }));
+    } catch (err) { /* ignore quota / private mode */ }
+  }
+
+  const progress = loadProgress();
+  snakeTheme = progress.snakeTheme;
+  groundTheme = progress.groundTheme;
+  highScore = progress.highScore;
+
+  function showShopToast(msg) {
+    if (!shopToastEl) return;
+    shopToastEl.textContent = msg;
+    shopToastEl.hidden = false;
+    clearTimeout(shopToastTimer);
+    shopToastTimer = setTimeout(() => {
+      shopToastEl.hidden = true;
+    }, 1800);
+  }
+
+  function refreshShopUI() {
+    if (gemCountEl) gemCountEl.textContent = progress.gems;
+    document.querySelectorAll('#themeChoices .theme-btn').forEach(btn => {
+      const id = btn.getAttribute('data-theme');
+      const cost = SNAKE_COSTS[id] || 0;
+      const unlocked = progress.unlockedSnake.includes(id);
+      const status = btn.querySelector('.theme-status');
+      btn.classList.toggle('active', snakeTheme === id);
+      btn.classList.toggle('locked', !unlocked);
+      btn.classList.toggle('unaffordable', !unlocked && progress.gems < cost);
+      if (status) {
+        status.textContent = unlocked ? (snakeTheme === id ? 'فعال' : '') : (cost + ' 💎');
+      }
+    });
+    document.querySelectorAll('#groundChoices .theme-btn').forEach(btn => {
+      const id = btn.getAttribute('data-ground');
+      const cost = GROUND_COSTS[id] || 0;
+      const unlocked = progress.unlockedGround.includes(id);
+      const status = btn.querySelector('.theme-status');
+      btn.classList.toggle('active', groundTheme === id);
+      btn.classList.toggle('locked', !unlocked);
+      btn.classList.toggle('unaffordable', !unlocked && progress.gems < cost);
+      if (status) {
+        status.textContent = unlocked ? (groundTheme === id ? 'فعال' : '') : (cost + ' 💎');
+      }
+    });
+  }
+
+  function tryUnlock(kind, id) {
+    const isSnake = kind === 'snake';
+    const cost = isSnake ? SNAKE_COSTS[id] : GROUND_COSTS[id];
+    const owned = isSnake ? progress.unlockedSnake : progress.unlockedGround;
+    if (owned.includes(id)) return true;
+    if (progress.gems < cost) {
+      showShopToast('الماس کافی نیست — امتیاز بازی‌ها به الماس تبدیل می‌شود');
+      return false;
+    }
+    progress.gems -= cost;
+    owned.push(id);
+    saveProgress();
+    refreshShopUI();
+    showShopToast('خریداری شد ✓');
+    return true;
+  }
 
   function formatAliveTime(ms) {
     const totalSec = Math.floor(ms / 1000);
@@ -89,15 +396,11 @@
     const harmfulTotal = harmfulCounts.bottle + harmfulCounts.bag + harmfulCounts.can;
     appleCountEl.textContent = applesEaten;
     harmfulCountEl.textContent = harmfulTotal;
-    bottleCountEl.textContent = harmfulCounts.bottle;
-    bagCountEl.textContent = harmfulCounts.bag;
-    canCountEl.textContent = harmfulCounts.can;
     aliveTimeEl.textContent = formatAliveTime(aliveElapsedMs);
   }
 
-  let highScoreMemory = 0;
-  highScore = highScoreMemory;
   highScoreEl.textContent = highScore;
+  refreshShopUI();
 
   function cellFree(x, y, extraExclude) {
     if (snake.some(s => s.x === x && s.y === y)) return false;
@@ -117,7 +420,32 @@
     return null;
   }
 
+  function bankRunGems() {
+    if (gemsBankedThisRun) return 0;
+    gemsBankedThisRun = true;
+    const earned = Math.max(0, score);
+    let changed = false;
+    if (earned > 0) {
+      progress.gems += earned;
+      changed = true;
+    }
+    if (score > highScore) {
+      highScore = score;
+      progress.highScore = highScore;
+      highScoreEl.textContent = highScore;
+      changed = true;
+    }
+    if (changed) {
+      saveProgress();
+      refreshShopUI();
+    }
+    return earned;
+  }
+
   function resetGame() {
+    if (gameStarted && gameRunning && score > 0) {
+      bankRunGems();
+    }
     clearInterval(gameLoopId);
     gameLoopId = null;
     snake = createInitialSnake();
@@ -127,12 +455,14 @@
     particles = [];
     groundTrail = [];
     emitParticles = [];
+    rebuildBackgrounds();
     obstacles = [];
     foods = [];
     applesEaten = 0;
     harmfulCounts = { bottle: 0, bag: 0, can: 0 };
     aliveStartedAt = 0;
     aliveElapsedMs = 0;
+    gemsBankedThisRun = false;
     scoreEl.textContent = score;
     updateStatsBox();
     placeAllFoods();
@@ -344,6 +674,8 @@
       );
       placeFood(hitFood);
     } else if (hitObstacle) {
+      score = Math.max(0, score - 20);
+      scoreEl.textContent = score;
       harmfulCounts[hitObstacle.type] += 1;
       updateStatsBox();
       spawnParticles(
@@ -379,20 +711,8 @@
   }
 
   function drawBackground() {
-    const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    g.addColorStop(0, '#101a30');
-    g.addColorStop(1, '#0a0f1e');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    for (let y = 0; y < tileCount; y++) {
-      for (let x = 0; x < tileCount; x++) {
-        if ((x + y) % 2 === 0) {
-          ctx.fillStyle = 'rgba(255,255,255,0.015)';
-          ctx.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
-        }
-      }
-    }
+    const buf = bgBuffers[groundTheme];
+    if (buf) ctx.drawImage(buf, 0, 0);
   }
 
   function drawAppleAt(food) {
@@ -905,11 +1225,11 @@
       aliveElapsedMs = Date.now() - aliveStartedAt;
       aliveTimeEl.textContent = formatAliveTime(aliveElapsedMs);
     }
-    if (score > highScore) {
-      highScore = score;
-      highScoreEl.textContent = highScore;
-    }
+    const earned = bankRunGems();
     finalScoreEl.textContent = 'امتیاز نهایی: ' + score;
+    gemsEarnedEl.textContent = earned > 0
+      ? ('+' + earned + ' 💎 به صندوق الماس اضافه شد')
+      : 'در این بازی الماس نگرفتی';
     overlay.style.display = 'flex';
   }
 
@@ -971,10 +1291,23 @@
     if (!btn) return;
     const next = btn.getAttribute('data-theme');
     if (!SNAKE_THEMES[next]) return;
+    if (!tryUnlock('snake', next)) return;
     snakeTheme = next;
-    document.querySelectorAll('#themeChoices .theme-btn').forEach(b => {
-      b.classList.toggle('active', b.getAttribute('data-theme') === snakeTheme);
-    });
+    progress.snakeTheme = next;
+    saveProgress();
+    refreshShopUI();
+  });
+
+  document.getElementById('groundChoices').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-ground]');
+    if (!btn) return;
+    const next = btn.getAttribute('data-ground');
+    if (!GROUND_THEMES.includes(next)) return;
+    if (!tryUnlock('ground', next)) return;
+    groundTheme = next;
+    progress.groundTheme = next;
+    saveProgress();
+    refreshShopUI();
   });
 
   if (window.matchMedia('(pointer: coarse)').matches) {

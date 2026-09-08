@@ -33,6 +33,10 @@ h1 {
   color: #4ade80;
   text-shadow: 0 0 10px rgba(74, 222, 128, 0.6);
 }
+#scoreBoard .gems-stat span {
+  color: #fbbf24;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.55);
+}
 #playArea {
   display: flex;
   flex-direction: row;
@@ -59,7 +63,7 @@ h1 {
   width: min(640px, calc(90vw - 280px), 68vh);
   height: auto;
   aspect-ratio: 1;
-  box-shadow: inset 0 0 60px rgba(0,0,0,0.6);
+  box-shadow: inset 0 0 36px rgba(0,0,0,0.16);
 }
 #statsBox {
   width: 240px;
@@ -107,22 +111,6 @@ h1 {
 }
 .stats-row.apple strong { color: #4ade80; }
 .stats-row.harmful-total strong { color: #f87171; }
-.stats-sub {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(0,0,0,0.22);
-}
-.stats-sub .stats-row {
-  font-size: 13px;
-  color: #94a3b8;
-}
-.stats-sub .stats-row strong {
-  font-size: 16px;
-  color: #e2e8f0;
-}
 .stats-section {
   padding-top: 12px;
   border-top: 1px solid rgba(255,255,255,0.1);
@@ -190,6 +178,23 @@ h1 {
   cursor: pointer;
   text-align: right;
 }
+.theme-meta {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.theme-name {
+  font-size: 13px;
+}
+.theme-status {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: #fbbf24;
+  white-space: nowrap;
+}
 .theme-btn:hover {
   border-color: rgba(255,255,255,0.2);
   color: #f8fafc;
@@ -198,6 +203,19 @@ h1 {
   border-color: rgba(74, 222, 128, 0.55);
   background: rgba(74, 222, 128, 0.12);
   color: #f8fafc;
+}
+.theme-btn.active .theme-status {
+  color: #86efac;
+}
+.theme-btn.locked .theme-swatch {
+  filter: grayscale(0.45) brightness(0.85);
+  box-shadow: none;
+}
+.theme-btn.unaffordable {
+  opacity: 0.72;
+}
+.theme-btn.unaffordable .theme-status {
+  color: #94a3b8;
 }
 .theme-swatch {
   width: 28px;
@@ -217,6 +235,18 @@ h1 {
 .swatch-fire {
   background: linear-gradient(90deg, #fdba74, #ea580c);
   color: #fb923c;
+}
+.swatch-grass {
+  background: linear-gradient(90deg, #35592f, #2f5233);
+  color: #4a7a46;
+}
+.swatch-dirt {
+  background: linear-gradient(90deg, #75503a, #6b4a35);
+  color: #8b6548;
+}
+.swatch-hall {
+  background: linear-gradient(90deg, #d8c9a8, #c9b78f);
+  color: #c9b78f;
 }
 #legend {
   display: flex;
@@ -277,6 +307,11 @@ h1 {
   text-shadow: 0 0 20px rgba(248, 113, 113, 0.5);
 }
 #overlay p { margin: 0; font-size: 17px; color: #cbd5e1; }
+#overlay .gems-earned {
+  color: #fbbf24;
+  font-weight: bold;
+  text-shadow: 0 0 12px rgba(251, 191, 36, 0.45);
+}
 #restartBtn {
   padding: 12px 28px;
   font-size: 16px;
@@ -293,15 +328,21 @@ h1 {
   font-size: 13px;
   color: #94a3b8;
 }
-#floatMsg {
-  position: absolute;
-  pointer-events: none;
-  font-weight: bold;
+#shopToast {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #fde68a;
   font-size: 13px;
-  color: #fca5a5;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-  opacity: 0;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
 }
+#shopToast[hidden] { display: none; }
 @media (max-width: 900px) {
   #playArea {
     flex-direction: column;
@@ -320,7 +361,6 @@ h1 {
     padding-bottom: 10px;
   }
   #aliveTime { font-size: 26px; }
-    .stats-sub { flex: 1; min-width: 180px; }
     .stats-section { width: 100%; }
 }
 @media (max-width: 640px), (max-height: 820px) {

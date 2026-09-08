@@ -5,6 +5,40 @@
   const tileCount = canvas.width / gridSize;
   const S = gridSize / 20;
   const OBSTACLE_TYPES = ['bottle', 'bag', 'can'];
+  const DIFFICULTIES = {
+    easy: { apples: 2, harmful: 1, hint: '۲ سیب · ۱ مضر' },
+    medium: { apples: 1, harmful: 3, hint: '۱ سیب · ۳ مضر' },
+    hard: { apples: 1, harmful: 5, hint: '۱ سیب · ۵ مضر' }
+  };
+  const SNAKE_THEMES = {
+    classic: {
+      headLight: '#7CF29C',
+      headDark: '#22b555',
+      tongue: '#e14b6a',
+      speckle: 'rgba(255,255,255,0.15)',
+      glow: null,
+      bodyLight: (shade) => `rgba(${110 + shade * 40}, ${230 * shade}, ${140 * shade}, 1)`,
+      bodyDark: (shade) => `rgba(20, ${140 * shade}, ${70 * shade}, 1)`
+    },
+    ice: {
+      headLight: '#E0F2FE',
+      headDark: '#0284C7',
+      tongue: '#7DD3FC',
+      speckle: 'rgba(255,255,255,0.35)',
+      glow: 'rgba(56, 189, 248, 0.7)',
+      bodyLight: (shade) => `rgba(${90 + shade * 80}, ${200 * shade}, ${255 * shade}, 1)`,
+      bodyDark: (shade) => `rgba(15, ${90 * shade}, ${170 * shade}, 1)`
+    },
+    fire: {
+      headLight: '#FED7AA',
+      headDark: '#EA580C',
+      tongue: '#FBBF24',
+      speckle: 'rgba(255, 220, 120, 0.4)',
+      glow: 'rgba(249, 115, 22, 0.75)',
+      bodyLight: (shade) => `rgba(${255 * shade}, ${140 + shade * 50}, ${30 * shade}, 1)`,
+      bodyDark: (shade) => `rgba(${170 * shade}, ${45 * shade}, 8, 1)`
+    }
+  };
   const INITIAL_SNAKE = [
     { x: 8, y: 10 },
     { x: 7, y: 10 },
@@ -15,7 +49,7 @@
     return INITIAL_SNAKE.map(seg => ({ x: seg.x, y: seg.y }));
   }
 
-  let snake, dir, nextDir, food, obstacles, score, highScore, gameRunning, gameStarted;
+  let snake, dir, nextDir, foods, obstacles, score, highScore, gameRunning, gameStarted;
   let gameLoopId = null;
   let speed = 130;
   let tongueTimer = 0;
@@ -26,6 +60,10 @@
   let harmfulCounts = { bottle: 0, bag: 0, can: 0 };
   let aliveStartedAt = 0;
   let aliveElapsedMs = 0;
+  let difficulty = 'medium';
+  let snakeTheme = 'classic';
+  let groundTrail = [];
+  let emitParticles = [];
 
   const scoreEl = document.getElementById('score');
   const highScoreEl = document.getElementById('highScore');
@@ -38,6 +76,7 @@
   const bottleCountEl = document.getElementById('bottleCount');
   const bagCountEl = document.getElementById('bagCount');
   const canCountEl = document.getElementById('canCount');
+  const diffHintEl = document.getElementById('diffHint');
 
   function formatAliveTime(ms) {
     const totalSec = Math.floor(ms / 1000);
@@ -62,26 +101,42 @@
 
   function cellFree(x, y, extraExclude) {
     if (snake.some(s => s.x === x && s.y === y)) return false;
-    if (food && food.x === x && food.y === y) return false;
+    if (foods && foods.some(f => f !== extraExclude && f.x === x && f.y === y)) return false;
     if (obstacles && obstacles.some(o => o !== extraExclude && o.x === x && o.y === y)) return false;
     return true;
   }
 
+  function randomFreeCell(extraExclude) {
+    let attempts = 0;
+    while (attempts < 500) {
+      attempts++;
+      const x = Math.floor(Math.random() * tileCount);
+      const y = Math.floor(Math.random() * tileCount);
+      if (cellFree(x, y, extraExclude)) return { x, y };
+    }
+    return null;
+  }
+
   function resetGame() {
+    clearInterval(gameLoopId);
+    gameLoopId = null;
     snake = createInitialSnake();
     dir = { x: 1, y: 0 };
     nextDir = { x: 1, y: 0 };
     score = 0;
     particles = [];
+    groundTrail = [];
+    emitParticles = [];
     obstacles = [];
+    foods = [];
     applesEaten = 0;
     harmfulCounts = { bottle: 0, bag: 0, can: 0 };
     aliveStartedAt = 0;
     aliveElapsedMs = 0;
     scoreEl.textContent = score;
     updateStatsBox();
-    placeFood();
-    OBSTACLE_TYPES.forEach(type => placeObstacle(type));
+    placeAllFoods();
+    placeAllObstacles();
     gameRunning = true;
     gameStarted = false;
     overlay.style.display = 'none';
@@ -89,35 +144,42 @@
     startRenderLoop();
   }
 
-  function placeFood() {
-    let valid = false;
-    while (!valid) {
-      const x = Math.floor(Math.random() * tileCount);
-      const y = Math.floor(Math.random() * tileCount);
-      if (cellFree(x, y)) {
-        food = { x, y };
-        valid = true;
-      }
+  function placeFood(existing) {
+    const pos = randomFreeCell(existing);
+    if (!pos) return;
+    if (existing) {
+      existing.x = pos.x;
+      existing.y = pos.y;
+    } else {
+      foods.push({ x: pos.x, y: pos.y });
     }
   }
 
-  function placeObstacle(type) {
-    let valid = false;
-    let attempts = 0;
-    const existing = obstacles.find(o => o.type === type);
-    while (!valid && attempts < 500) {
-      attempts++;
-      const x = Math.floor(Math.random() * tileCount);
-      const y = Math.floor(Math.random() * tileCount);
-      if (cellFree(x, y, existing)) {
-        if (existing) {
-          existing.x = x;
-          existing.y = y;
-        } else {
-          obstacles.push({ type, x, y });
-        }
-        valid = true;
-      }
+  function placeAllFoods() {
+    foods = [];
+    const count = DIFFICULTIES[difficulty].apples;
+    for (let i = 0; i < count; i++) placeFood();
+  }
+
+  function placeObstacle(existingOrType) {
+    const isObj = typeof existingOrType === 'object';
+    const existing = isObj ? existingOrType : null;
+    const type = isObj ? existingOrType.type : existingOrType;
+    const pos = randomFreeCell(existing);
+    if (!pos) return;
+    if (existing) {
+      existing.x = pos.x;
+      existing.y = pos.y;
+    } else {
+      obstacles.push({ type, x: pos.x, y: pos.y });
+    }
+  }
+
+  function placeAllObstacles() {
+    obstacles = [];
+    const count = DIFFICULTIES[difficulty].harmful;
+    for (let i = 0; i < count; i++) {
+      placeObstacle(OBSTACLE_TYPES[i % OBSTACLE_TYPES.length]);
     }
   }
 
@@ -132,6 +194,124 @@
         color
       });
     }
+  }
+
+  function spawnGroundTrail() {
+    if (snakeTheme !== 'ice') return;
+    const segIndex = Math.min(1, snake.length - 1);
+    const seg = snake[segIndex];
+    if (!seg) return;
+    groundTrail.push({
+      x: seg.x * gridSize + gridSize / 2 + (Math.random() - 0.5) * gridSize * 0.3,
+      y: seg.y * gridSize + gridSize / 2 + (Math.random() - 0.5) * gridSize * 0.3,
+      life: 1,
+      size: (0.3 + Math.random() * 0.25) * gridSize
+    });
+  }
+
+  function updateGroundTrail() {
+    if (groundTrail.length === 0) return;
+    groundTrail = groundTrail.filter(t => t.life > 0);
+    groundTrail.forEach(t => { t.life -= 0.015; });
+  }
+
+  function drawGroundTrail() {
+    groundTrail.forEach(t => {
+      const alpha = Math.max(t.life, 0);
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.55;
+      const g = ctx.createRadialGradient(t.x, t.y, 1, t.x, t.y, t.size * 0.65);
+      g.addColorStop(0, 'rgba(224,242,254,0.9)');
+      g.addColorStop(0.6, 'rgba(125,211,252,0.5)');
+      g.addColorStop(1, 'rgba(56,189,248,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(t.x, t.y, t.size * 0.55, t.size * 0.34, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+
+  function spawnEmitParticles() {
+    if (!snake || snake.length < 1 || !gameStarted || !gameRunning) return;
+    if (snakeTheme !== 'ice' && snakeTheme !== 'fire') return;
+    const head = snake[0];
+    const hx = head.x * gridSize + gridSize / 2;
+    const hy = head.y * gridSize + gridSize / 2;
+    const angle = Math.atan2(dir.y, dir.x);
+    const backX = -Math.cos(angle);
+    const backY = -Math.sin(angle);
+
+    if (snakeTheme === 'ice' && animFrame % 3 === 0) {
+      const side = Math.random() < 0.5 ? 1 : -1;
+      const perpX = -Math.sin(angle) * side;
+      const perpY = Math.cos(angle) * side;
+      emitParticles.push({
+        x: hx + backX * gridSize * 0.3 + perpX * gridSize * 0.35,
+        y: hy + backY * gridSize * 0.3 + perpY * gridSize * 0.35,
+        vx: perpX * (0.6 + Math.random() * 0.8) * S,
+        vy: -1.1 * S - Math.random() * 0.7 * S,
+        gravity: 0.14 * S,
+        life: 1,
+        size: (0.13 + Math.random() * 0.1) * gridSize,
+        theme: 'ice'
+      });
+    } else if (snakeTheme === 'fire' && animFrame % 2 === 0) {
+      for (let i = 0; i < 2; i++) {
+        const spread = (Math.random() - 0.5) * 0.7;
+        emitParticles.push({
+          x: hx + backX * gridSize * 0.35 + (Math.random() - 0.5) * gridSize * 0.25,
+          y: hy + backY * gridSize * 0.35 + (Math.random() - 0.5) * gridSize * 0.25,
+          vx: (backX + spread) * (0.5 + Math.random() * 0.6) * S,
+          vy: (backY * 0.6 - 0.35) * (0.7 + Math.random() * 0.6) * S,
+          gravity: -0.02 * S,
+          life: 1,
+          size: (0.17 + Math.random() * 0.17) * gridSize,
+          theme: 'fire'
+        });
+      }
+    }
+  }
+
+  function updateEmitParticles() {
+    if (emitParticles.length === 0) return;
+    emitParticles = emitParticles.filter(p => p.life > 0);
+    emitParticles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += (p.gravity || 0);
+      p.vx *= 0.98;
+      p.life -= p.theme === 'fire' ? 0.045 : 0.03;
+    });
+  }
+
+  function drawEmitParticles() {
+    emitParticles.forEach(p => {
+      const alpha = Math.max(p.life, 0);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      if (p.theme === 'ice') {
+        const g = ctx.createRadialGradient(p.x - p.size * 0.15, p.y - p.size * 0.2, 1, p.x, p.y, p.size);
+        g.addColorStop(0, 'rgba(255,255,255,0.95)');
+        g.addColorStop(0.45, 'rgba(186,230,253,0.9)');
+        g.addColorStop(1, 'rgba(56,189,248,0.4)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, p.size * 0.55, p.size * 0.75, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.theme === 'fire') {
+        const g = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, p.size);
+        g.addColorStop(0, 'rgba(255,241,180,0.95)');
+        g.addColorStop(0.35, 'rgba(255,150,40,0.85)');
+        g.addColorStop(0.7, 'rgba(230,60,20,0.5)');
+        g.addColorStop(1, 'rgba(120,20,10,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    });
   }
 
   function gameTick() {
@@ -150,18 +330,19 @@
     snake.unshift(head);
 
     const hitObstacle = obstacles.find(o => o.x === head.x && o.y === head.y);
+    const hitFood = foods.find(f => f.x === head.x && f.y === head.y);
 
-    if (head.x === food.x && head.y === food.y) {
+    if (hitFood) {
       score += 10;
       applesEaten += 1;
       scoreEl.textContent = score;
       updateStatsBox();
       spawnParticles(
-        food.x * gridSize + gridSize / 2,
-        food.y * gridSize + gridSize / 2,
+        hitFood.x * gridSize + gridSize / 2,
+        hitFood.y * gridSize + gridSize / 2,
         '#f87171', 14
       );
-      placeFood();
+      placeFood(hitFood);
     } else if (hitObstacle) {
       harmfulCounts[hitObstacle.type] += 1;
       updateStatsBox();
@@ -170,7 +351,7 @@
         hitObstacle.y * gridSize + gridSize / 2,
         '#94a3b8', 12
       );
-      placeObstacle(hitObstacle.type);
+      placeObstacle(hitObstacle);
       // unshift already added a head; net shrink of 2 means 3 pops.
       // If that would leave no segments, end the game without emptying the array
       // so the render loop cannot crash on snake[0].
@@ -183,6 +364,8 @@
     } else {
       snake.pop();
     }
+
+    spawnGroundTrail();
   }
 
   function roundRectPath(x, y, w, h, r) {
@@ -212,7 +395,7 @@
     }
   }
 
-  function drawApple() {
+  function drawAppleAt(food) {
     const cx = food.x * gridSize + gridSize / 2;
     const cy = food.y * gridSize + gridSize / 2;
     const r = gridSize / 2 - 2 * S;
@@ -261,6 +444,11 @@
     ctx.strokeStyle = 'rgba(0,80,0,0.3)';
     ctx.lineWidth = 0.7 * S;
     ctx.stroke();
+  }
+
+  function drawApples() {
+    if (!foods) return;
+    foods.forEach(drawAppleAt);
   }
 
   function drawBottle(cx, cy) {
@@ -455,9 +643,65 @@
     });
   }
 
+  function drawFireHeadFlames(hSize) {
+    ctx.save();
+    [1, -1].forEach(side => {
+      const baseX = -hSize * 0.3;
+      const baseY = side * hSize * 0.42;
+      for (let i = 0; i < 3; i++) {
+        const flick = Math.sin(animFrame / 5 + i * 1.7 + side * 2) * hSize * 0.12;
+        const len = hSize * (0.55 + i * 0.24);
+        ctx.beginPath();
+        ctx.moveTo(baseX, baseY);
+        ctx.quadraticCurveTo(
+          baseX - len * 0.5 + flick, baseY + side * len * 0.35,
+          baseX - len, baseY + side * len * 0.1 + flick * 0.5
+        );
+        ctx.quadraticCurveTo(
+          baseX - len * 0.5, baseY - side * len * 0.08,
+          baseX, baseY
+        );
+        ctx.closePath();
+        const g = ctx.createLinearGradient(baseX, baseY, baseX - len, baseY);
+        g.addColorStop(0, 'rgba(255,241,180,0.95)');
+        g.addColorStop(0.5, 'rgba(255,140,40,0.8)');
+        g.addColorStop(1, 'rgba(220,40,10,0)');
+        ctx.fillStyle = g;
+        ctx.globalAlpha = 0.85 - i * 0.2;
+        ctx.fill();
+      }
+    });
+    ctx.restore();
+  }
+
+  function drawIceHeadFins(hSize) {
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    [1, -1].forEach(side => {
+      const fx = -hSize * 0.38;
+      const fy = side * hSize * 0.4;
+      const wag = Math.sin(animFrame / 9 + side) * hSize * 0.05;
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.quadraticCurveTo(fx - hSize * 0.35, fy + side * hSize * 0.25 + wag, fx - hSize * 0.55, fy + side * hSize * 0.05);
+      ctx.quadraticCurveTo(fx - hSize * 0.3, fy - side * hSize * 0.02, fx, fy);
+      ctx.closePath();
+      const g = ctx.createLinearGradient(fx, fy, fx - hSize * 0.55, fy);
+      g.addColorStop(0, 'rgba(224,242,254,0.9)');
+      g.addColorStop(1, 'rgba(56,189,248,0.15)');
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(224,242,254,0.6)';
+      ctx.lineWidth = 0.5 * S;
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
   function drawSnake() {
     if (!snake || snake.length < 1) return;
     const len = snake.length;
+    const theme = SNAKE_THEMES[snakeTheme] || SNAKE_THEMES.classic;
 
     snake.forEach((seg) => {
       ctx.beginPath();
@@ -482,8 +726,8 @@
         cx, cy, size * 0.8
       );
       const shade = 1 - t * 0.35;
-      bodyGrad.addColorStop(0, `rgba(${110 + shade*40}, ${230*shade}, ${140*shade}, 1)`);
-      bodyGrad.addColorStop(1, `rgba(${20}, ${140*shade}, ${70*shade}, 1)`);
+      bodyGrad.addColorStop(0, theme.bodyLight(shade));
+      bodyGrad.addColorStop(1, theme.bodyDark(shade));
 
       roundRectPath(cx - size / 2, cy - size / 2, size, size, size * 0.4);
       ctx.fillStyle = bodyGrad;
@@ -492,8 +736,29 @@
       if (i % 2 === 0) {
         ctx.beginPath();
         ctx.arc(cx, cy, size * 0.12, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillStyle = theme.speckle;
         ctx.fill();
+      }
+
+      if (snakeTheme === 'ice') {
+        const shimmer = (Math.sin(animFrame / 14 - i * 0.6) + 1) / 2;
+        ctx.save();
+        ctx.globalAlpha = shimmer * 0.5;
+        ctx.beginPath();
+        ctx.ellipse(cx - size * 0.15, cy - size * 0.18, size * 0.3, size * 0.12, -0.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.fill();
+        ctx.restore();
+      } else if (snakeTheme === 'fire') {
+        const flicker = (Math.sin(animFrame / 6 + i) + 1) / 2;
+        ctx.save();
+        ctx.shadowColor = 'rgba(255,120,30,0.9)';
+        ctx.shadowBlur = (4 + flicker * 6) * S;
+        ctx.fillStyle = `rgba(255,${170 + flicker * 60}, ${60 + flicker * 40}, ${0.35 + flicker * 0.3})`;
+        ctx.beginPath();
+        ctx.arc(cx, cy, size * 0.1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       }
     }
 
@@ -515,18 +780,34 @@
       ctx.lineTo(hSize / 2 - 2 * S + tLen, -3 * S);
       ctx.moveTo(hSize / 2 - 2 * S + tLen * 0.7, 0);
       ctx.lineTo(hSize / 2 - 2 * S + tLen, 3 * S);
-      ctx.strokeStyle = '#e14b6a';
+      ctx.strokeStyle = theme.tongue;
       ctx.lineWidth = 1.6 * S;
       ctx.lineCap = 'round';
       ctx.stroke();
     }
 
+    if (snakeTheme === 'fire') {
+      drawFireHeadFlames(hSize);
+    }
+
+    if (theme.glow) {
+      const pulse = 10 + Math.sin(animFrame / 8) * 4;
+      ctx.shadowColor = theme.glow;
+      ctx.shadowBlur = pulse * S;
+    }
+
     const headGrad = ctx.createRadialGradient(-hSize*0.15, -hSize*0.15, 2 * S, 0, 0, hSize*0.75);
-    headGrad.addColorStop(0, '#7CF29C');
-    headGrad.addColorStop(1, '#22b555');
+    headGrad.addColorStop(0, theme.headLight);
+    headGrad.addColorStop(1, theme.headDark);
     roundRectPath(-hSize / 2, -hSize / 2, hSize, hSize, hSize * 0.42);
     ctx.fillStyle = headGrad;
     ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
+
+    if (snakeTheme === 'ice') {
+      drawIceHeadFins(hSize);
+    }
 
     const eyeOffsetX = hSize * 0.18;
     const eyeOffsetY = hSize * 0.22;
@@ -579,9 +860,11 @@
 
   function draw() {
     drawBackground();
-    drawApple();
+    drawGroundTrail();
+    drawApples();
     drawObstacles();
     drawSnake();
+    drawEmitParticles();
     drawParticles();
   }
 
@@ -594,6 +877,9 @@
     }
     try {
       updateParticles();
+      updateGroundTrail();
+      spawnEmitParticles();
+      updateEmitParticles();
       if (gameStarted && gameRunning && aliveStartedAt) {
         aliveElapsedMs = Date.now() - aliveStartedAt;
         aliveTimeEl.textContent = formatAliveTime(aliveElapsedMs);
@@ -664,6 +950,31 @@
   document.getElementById('restartBtn').addEventListener('click', () => {
     speed = 130;
     resetGame();
+  });
+
+  document.getElementById('difficultyChoices').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-diff]');
+    if (!btn) return;
+    const next = btn.getAttribute('data-diff');
+    if (!DIFFICULTIES[next] || next === difficulty) return;
+    difficulty = next;
+    document.querySelectorAll('#difficultyChoices .choice-btn').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-diff') === difficulty);
+    });
+    diffHintEl.textContent = DIFFICULTIES[difficulty].hint;
+    speed = 130;
+    resetGame();
+  });
+
+  document.getElementById('themeChoices').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-theme]');
+    if (!btn) return;
+    const next = btn.getAttribute('data-theme');
+    if (!SNAKE_THEMES[next]) return;
+    snakeTheme = next;
+    document.querySelectorAll('#themeChoices .theme-btn').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-theme') === snakeTheme);
+    });
   });
 
   if (window.matchMedia('(pointer: coarse)').matches) {

@@ -7,7 +7,65 @@
     <link rel="stylesheet" href="app.css">
 </head>
 <body>
-    <canvas id="canvas" width="1000" height="700"></canvas>
+    <div class="paint-app">
+        <div class="toolbar">
+            <div class="toolbar-group">
+                <span>Tools</span>
+                <button type="button" class="tool-btn active" data-tool="pen" title="Pen" aria-label="Pen">
+                    <img src="icons/pen.svg" alt="">
+                </button>
+                <button type="button" class="tool-btn" data-tool="eraser" title="Eraser" aria-label="Eraser">
+                    <img src="icons/eraser.svg" alt="">
+                </button>
+                <button type="button" class="tool-btn" data-tool="line" title="Line" aria-label="Line">
+                    <img src="icons/line.svg" alt="">
+                </button>
+                <button type="button" class="tool-btn" data-tool="rect" title="Rect" aria-label="Rect">
+                    <img src="icons/rectangle.svg" alt="">
+                </button>
+                <button type="button" class="tool-btn" data-tool="fillRect" title="Fill Rect" aria-label="Fill Rect">
+                    <img src="icons/fill-rectangle.svg" alt="">
+                </button>
+                <button type="button" class="action-btn" id="eraseAllBtn">Erase All</button>
+            </div>
+
+            <div class="toolbar-group">
+                <span>Color</span>
+                <input type="color" id="colorPicker" value="#000000">
+                <input type="color" class="preset active" value="#000000">
+                <input type="color" class="preset" value="#e74c3c">
+                <input type="color" class="preset" value="#2980b9">
+            </div>
+
+            <div class="toolbar-group">
+                <span>Size</span>
+                <div class="size-select" id="sizeSelect">
+                    <button type="button" class="size-select-toggle" id="sizeToggle" aria-expanded="false">
+                        <span class="size-line" id="sizePreview"></span>
+                    </button>
+                    <div class="size-options" id="sizeOptions" hidden>
+                        <button type="button" class="size-option" data-size="2">
+                            <span class="size-line" style="height: 2px;"></span>
+                        </button>
+                        <button type="button" class="size-option active" data-size="4">
+                            <span class="size-line" style="height: 4px;"></span>
+                        </button>
+                        <button type="button" class="size-option" data-size="8">
+                            <span class="size-line" style="height: 8px;"></span>
+                        </button>
+                        <button type="button" class="size-option" data-size="12">
+                            <span class="size-line" style="height: 12px;"></span>
+                        </button>
+                        <button type="button" class="size-option" data-size="20">
+                            <span class="size-line" style="height: 20px;"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <canvas id="canvas" width="1000" height="700"></canvas>
+    </div>
     <script src="paint.js"></script>
 </body>
 </html>

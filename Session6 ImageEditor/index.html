@@ -9,6 +9,23 @@
 <body>
     <input type="file" id="fileInput" accept="image/*" hidden>
 
+    <svg class="svg-fx" aria-hidden="true" focusable="false">
+        <defs>
+            <filter id="fxChain" color-interpolation-filters="sRGB" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur id="fxBlur" in="SourceGraphic" stdDeviation="0 0" result="blurred"></feGaussianBlur>
+                <feConvolveMatrix id="fxSharpen" in="blurred" order="3" kernelMatrix="0 0 0 0 1 0 0 0 0" preserveAlpha="true" result="sharp"></feConvolveMatrix>
+                <feComponentTransfer id="fxTone" in="sharp" result="toned">
+                    <feFuncR id="fxGammaR" type="gamma" amplitude="1" exponent="1" offset="0"></feFuncR>
+                    <feFuncG id="fxGammaG" type="gamma" amplitude="1" exponent="1" offset="0"></feFuncG>
+                    <feFuncB id="fxGammaB" type="gamma" amplitude="1" exponent="1" offset="0"></feFuncB>
+                </feComponentTransfer>
+            </filter>
+            <filter id="duotone" color-interpolation-filters="sRGB">
+                <feColorMatrix id="duotoneMatrix" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"></feColorMatrix>
+            </filter>
+        </defs>
+    </svg>
+
     <div class="editor">
         <header class="topbar">
             <div class="brand">
@@ -56,7 +73,14 @@
             <div class="canvas-stage" id="canvasStage" hidden>
                 <div class="canvas-frame">
                     <div class="canvas-board">
-                        <canvas id="canvas"></canvas>
+                        <div class="image-stack" id="imageStack">
+                            <div class="image-clip">
+                                <canvas id="canvas"></canvas>
+                                <canvas id="duotoneCanvas" class="duotone-layer"></canvas>
+                                <div class="vignette-overlay" id="vignetteOverlay"></div>
+                                <div class="grain-overlay" id="grainOverlay"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -94,7 +118,7 @@
                     <input type="range" id="contrast" data-filter="contrast" data-unit="%" min="0" max="300" step="1" value="100">
                 </label>
 
-                <label class="filter-control">
+                <label class="filter-control" id="grayscaleControl">
                     <span class="filter-label">
                         <span>Grayscale</span>
                         <span data-value-for="grayscale">0%</span>
@@ -143,6 +167,76 @@
                 </label>
 
                 <div class="filter-group">
+                    <h3>Effects</h3>
+
+                    <label class="filter-control">
+                        <span class="filter-label">
+                            <span>Vignette</span>
+                            <span data-value-for="vignette">0%</span>
+                        </span>
+                        <input type="range" id="vignette" data-unit="%" min="0" max="100" step="1" value="0">
+                    </label>
+
+                    <label class="filter-control">
+                        <span class="filter-label">
+                            <span>Grain</span>
+                            <span data-value-for="grain">0%</span>
+                        </span>
+                        <input type="range" id="grain" data-unit="%" min="0" max="100" step="1" value="0">
+                    </label>
+
+                    <div class="swatch-row">
+                        <label class="swatch-control">
+                            <span>Shadows</span>
+                            <input type="color" id="duotoneShadows" value="#1b3654">
+                        </label>
+                        <label class="swatch-control">
+                            <span>Highlights</span>
+                            <input type="color" id="duotoneHighlights" value="#f2d5b0">
+                        </label>
+                    </div>
+
+                    <label class="filter-control">
+                        <span class="filter-label">
+                            <span>Duotone mix</span>
+                            <span data-value-for="duotoneMix">0%</span>
+                        </span>
+                        <input type="range" id="duotoneMix" data-unit="%" min="0" max="100" step="1" value="0">
+                    </label>
+
+                    <label class="filter-control">
+                        <span class="filter-label">
+                            <span>Sharpen</span>
+                            <span data-value-for="sharpen">0%</span>
+                        </span>
+                        <input type="range" id="sharpen" data-unit="%" min="0" max="100" step="1" value="0">
+                    </label>
+
+                    <label class="filter-control">
+                        <span class="filter-label">
+                            <span>Midtones</span>
+                            <span data-value-for="midtones">0</span>
+                        </span>
+                        <input type="range" id="midtones" min="-100" max="100" step="1" value="0">
+                    </label>
+
+                    <label class="filter-control">
+                        <span class="filter-label">
+                            <span>Motion blur</span>
+                            <span data-value-for="motionBlur">0px</span>
+                        </span>
+                        <input type="range" id="motionBlur" data-unit="px" min="0" max="25" step="0.1" value="0">
+                    </label>
+
+                    <div class="angle-presets" id="motionAngle">
+                        <button type="button" class="angle-btn active" data-angle="0">0°</button>
+                        <button type="button" class="angle-btn" data-angle="45">45°</button>
+                        <button type="button" class="angle-btn" data-angle="90">90°</button>
+                        <button type="button" class="angle-btn" data-angle="135">135°</button>
+                    </div>
+                </div>
+
+                <div class="filter-group">
                     <label class="toggle-row">
                         <span>
                             <strong>Drop Shadow</strong>
@@ -184,6 +278,50 @@
                             <input type="color" id="shadowColor" value="#008000">
                         </label>
                     </div>
+                </div>
+
+                <div class="filter-group" id="advancedGroup">
+                    <h3>Advanced</h3>
+
+                    <label class="filter-control">
+                        <span class="filter-label">
+                            <span>Posterize levels</span>
+                            <span data-value-for="posterize">Off</span>
+                        </span>
+                        <input type="range" id="posterize" min="0" max="16" step="1" value="0">
+                    </label>
+
+                    <label class="toggle-row">
+                        <span>
+                            <strong>B&amp;W threshold</strong>
+                            <small>Replaces grayscale</small>
+                        </span>
+                        <input type="checkbox" id="thresholdEnabled">
+                    </label>
+
+                    <label class="filter-control is-disabled" id="thresholdControl">
+                        <span class="filter-label">
+                            <span>Threshold</span>
+                            <span data-value-for="threshold">128</span>
+                        </span>
+                        <input type="range" id="threshold" min="0" max="255" step="1" value="128" disabled>
+                    </label>
+
+                    <label class="filter-control">
+                        <span class="filter-label">
+                            <span>Pixelate</span>
+                            <span data-value-for="pixelate">Off</span>
+                        </span>
+                        <input type="range" id="pixelate" data-unit="px" min="1" max="40" step="1" value="1">
+                    </label>
+
+                    <label class="filter-control">
+                        <span class="filter-label">
+                            <span>Chromatic aberration</span>
+                            <span data-value-for="aberration">0px</span>
+                        </span>
+                        <input type="range" id="aberration" data-unit="px" min="0" max="20" step="1" value="0">
+                    </label>
                 </div>
             </aside>
         </main>

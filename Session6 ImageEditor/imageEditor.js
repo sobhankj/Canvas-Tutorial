@@ -16,13 +16,14 @@ const duotoneCtx = duotoneCanvas.getContext('2d');
 const imageStack = document.getElementById('imageStack');
 const vignetteOverlay = document.getElementById('vignetteOverlay');
 const grainOverlay = document.getElementById('grainOverlay');
-const imageMeta = document.getElementById('imageMeta');
-const fileNameEl = document.getElementById('fileName');
-const imageSizeEl = document.getElementById('imageSize');
-const topbarActions = document.getElementById('topbarActions');
-const changeBtn = document.getElementById('changeBtn');
-const downloadBtn = document.getElementById('downloadBtn');
 const dropError = document.getElementById('dropError');
+const sheet = document.getElementById('sheet');
+const sheetHeader = document.getElementById('sheetHeader');
+const sheetHandle = document.getElementById('sheetHandle');
+const sheetScrim = document.getElementById('sheetScrim');
+const tabImage = document.getElementById('tabImage');
+const tabFilters = document.getElementById('tabFilters');
+const panelImage = document.getElementById('panelImage');
 const filtersPanel = document.getElementById('filtersPanel');
 const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 const namedFilterInputs = document.querySelectorAll('[data-filter]');
@@ -118,14 +119,25 @@ function showEditor(file, img) {
     dropzone.hidden = true;
     dropError.hidden = true;
     canvasStage.hidden = false;
-    filtersPanel.hidden = false;
-    imageMeta.hidden = false;
-    topbarActions.hidden = false;
+    sheet.hidden = false;
+    document.querySelectorAll('[data-image-meta], [data-editor-actions]').forEach((el) => {
+        el.hidden = false;
+    });
     workspace.classList.add('is-editing');
+    document.querySelector('.editor').classList.add('is-editing');
     sourceFileName = file.name || 'image';
-    fileNameEl.textContent = sourceFileName === 'image' ? 'Pasted image' : sourceFileName;
-    imageSizeEl.textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
+    const displayName = sourceFileName === 'image' ? 'Pasted image' : sourceFileName;
+    document.querySelectorAll('[data-file-name]').forEach((el) => {
+        el.textContent = displayName;
+    });
+    document.querySelectorAll('[data-image-size]').forEach((el) => {
+        el.textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
+    });
     applyFilters();
+    if (!isDesktopLayout()) {
+        setSheetSnap('peek', false);
+        selectTab('filters');
+    }
 }
 
 function formatInputValue(input) {
@@ -677,9 +689,11 @@ window.addEventListener('paste', (event) => {
     }
 });
 
-changeBtn.addEventListener('click', () => {
-    fileInput.value = '';
-    fileInput.click();
+document.querySelectorAll('.js-change-image').forEach((button) => {
+    button.addEventListener('click', () => {
+        fileInput.value = '';
+        fileInput.click();
+    });
 });
 
 filterInputs.forEach((input) => {
@@ -716,5 +730,231 @@ shadowEnabled.addEventListener('change', () => {
     updateShadowSettings();
     applyFilters();
 });
-downloadBtn.addEventListener('click', downloadImage);
+document.querySelectorAll('.js-download').forEach((button) => {
+    button.addEventListener('click', downloadImage);
+});
 updateThresholdGrayscaleLock();
+
+const DESKTOP_QUERY = window.matchMedia('(min-width: 768px)');
+const SNAP_NAMES = ['peek', 'half', 'full'];
+const FLING_VELOCITY = 0.45;
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+let sheetSnap = 'peek';
+let sheetVisible = 64;
+let sheetDragging = false;
+let dragStartY = 0;
+let dragStartVisible = 0;
+let lastDragY = 0;
+let lastDragTime = 0;
+let dragVelocity = 0;
+let dragMoved = false;
+
+function isDesktopLayout() {
+    return DESKTOP_QUERY.matches;
+}
+
+function snapHeights() {
+    return {
+        peek: 64,
+        half: Math.round(window.innerHeight * 0.55),
+        full: Math.round(window.innerHeight * 0.9)
+    };
+}
+
+function updateSheetScrim() {
+    const showScrim = !isDesktopLayout() && !sheet.hidden && sheetSnap === 'full';
+    sheetScrim.hidden = isDesktopLayout() || sheet.hidden;
+    sheetScrim.classList.toggle('is-visible', showScrim);
+}
+
+function applySheetVisible(visible, animate) {
+    const maxHeight = snapHeights().full;
+    sheetVisible = Math.max(snapHeights().peek, Math.min(maxHeight, visible));
+    sheet.classList.toggle('is-animating', Boolean(animate) && !prefersReducedMotion.matches);
+    if (animate && prefersReducedMotion.matches) {
+        sheet.classList.add('is-animating');
+    }
+    sheet.style.setProperty('--sheet-visible', `${sheetVisible}px`);
+    sheetHandle.setAttribute('aria-expanded', sheetSnap !== 'peek' ? 'true' : 'false');
+    updateSheetScrim();
+}
+
+function setSheetSnap(name, animate = true) {
+    sheetSnap = name;
+    applySheetVisible(snapHeights()[name], animate);
+}
+
+function nearestSnap(visible, velocity) {
+    const heights = snapHeights();
+    const points = SNAP_NAMES.map((name) => ({ name, value: heights[name] }));
+
+    if (velocity > FLING_VELOCITY) {
+        const next = points.find((point) => point.value > visible + 12);
+        return next ? next.name : 'full';
+    }
+
+    if (velocity < -FLING_VELOCITY) {
+        const previous = [...points].reverse().find((point) => point.value < visible - 12);
+        return previous ? previous.name : 'peek';
+    }
+
+    return points.reduce((closest, point) => (
+        Math.abs(point.value - visible) < Math.abs(heights[closest] - visible) ? point.name : closest
+    ), 'peek');
+}
+
+function toggleSheetFromHandle() {
+    if (isDesktopLayout()) {
+        return;
+    }
+
+    if (sheetSnap === 'peek') {
+        setSheetSnap('half');
+        return;
+    }
+
+    setSheetSnap('peek');
+}
+
+function selectTab(name) {
+    const showImage = name === 'image';
+    tabImage.classList.toggle('is-active', showImage);
+    tabFilters.classList.toggle('is-active', !showImage);
+    tabImage.setAttribute('aria-selected', showImage ? 'true' : 'false');
+    tabFilters.setAttribute('aria-selected', showImage ? 'false' : 'true');
+    tabImage.tabIndex = showImage ? 0 : -1;
+    tabFilters.tabIndex = showImage ? -1 : 0;
+    panelImage.hidden = !showImage;
+    filtersPanel.hidden = showImage;
+}
+
+function syncSheetForViewport() {
+    if (isDesktopLayout()) {
+        sheetDragging = false;
+        sheet.classList.remove('is-animating');
+        sheet.style.removeProperty('--sheet-visible');
+        sheet.removeAttribute('role');
+        panelImage.hidden = true;
+        filtersPanel.hidden = false;
+        sheetScrim.hidden = true;
+        sheetScrim.classList.remove('is-visible');
+        return;
+    }
+
+    sheet.setAttribute('role', 'dialog');
+    sheet.setAttribute('aria-modal', 'false');
+    sheet.setAttribute('aria-label', 'Editor tools');
+    if (!sheet.hidden) {
+        setSheetSnap(sheetSnap, false);
+        selectTab(filtersPanel.hidden ? 'image' : 'filters');
+    }
+}
+
+sheetHeader.addEventListener('pointerdown', (event) => {
+    if (isDesktopLayout() || event.button !== 0 || event.target.closest('.tab-btn')) {
+        return;
+    }
+
+    sheetDragging = true;
+    dragMoved = false;
+    dragStartY = event.clientY;
+    dragStartVisible = sheetVisible;
+    lastDragY = event.clientY;
+    lastDragTime = performance.now();
+    dragVelocity = 0;
+    sheet.classList.remove('is-animating');
+    sheetHeader.setPointerCapture(event.pointerId);
+});
+
+function onSheetPointerMove(event) {
+    if (!sheetDragging) {
+        return;
+    }
+
+    const now = performance.now();
+    const delta = dragStartY - event.clientY;
+    if (Math.abs(event.clientY - dragStartY) > 6) {
+        dragMoved = true;
+    }
+
+    const dt = Math.max(now - lastDragTime, 1);
+    dragVelocity = (lastDragY - event.clientY) / dt;
+    lastDragY = event.clientY;
+    lastDragTime = now;
+    applySheetVisible(dragStartVisible + delta, false);
+}
+
+function onSheetPointerUp(event) {
+    if (!sheetDragging) {
+        return;
+    }
+
+    sheetDragging = false;
+
+    if (!dragMoved) {
+        toggleSheetFromHandle();
+        return;
+    }
+
+    setSheetSnap(nearestSnap(sheetVisible, dragVelocity));
+}
+
+sheetHeader.addEventListener('pointermove', onSheetPointerMove);
+sheetHeader.addEventListener('pointerup', onSheetPointerUp);
+sheetHeader.addEventListener('pointercancel', onSheetPointerUp);
+
+sheetHandle.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        toggleSheetFromHandle();
+    }
+
+    if (event.key === 'Escape') {
+        setSheetSnap('peek');
+    }
+
+    if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const next = SNAP_NAMES[Math.min(SNAP_NAMES.indexOf(sheetSnap) + 1, SNAP_NAMES.length - 1)];
+        setSheetSnap(next);
+    }
+
+    if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const previous = SNAP_NAMES[Math.max(SNAP_NAMES.indexOf(sheetSnap) - 1, 0)];
+        setSheetSnap(previous);
+    }
+});
+
+tabImage.addEventListener('click', () => selectTab('image'));
+tabFilters.addEventListener('click', () => selectTab('filters'));
+
+function onTabKeydown(event, current) {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+        return;
+    }
+
+    event.preventDefault();
+    const next = current === 'image' ? 'filters' : 'image';
+    selectTab(next);
+    (next === 'image' ? tabImage : tabFilters).focus();
+}
+
+tabImage.addEventListener('keydown', (event) => onTabKeydown(event, 'image'));
+tabFilters.addEventListener('keydown', (event) => onTabKeydown(event, 'filters'));
+
+sheetScrim.addEventListener('click', () => {
+    if (!isDesktopLayout()) {
+        setSheetSnap('peek');
+    }
+});
+
+DESKTOP_QUERY.addEventListener('change', syncSheetForViewport);
+window.addEventListener('resize', () => {
+    if (!isDesktopLayout() && !sheet.hidden) {
+        setSheetSnap(sheetSnap, false);
+    }
+});
+
+syncSheetForViewport();

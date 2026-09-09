@@ -27,6 +27,18 @@
     </svg>
 
     <div class="editor">
+        <div class="brand-float" aria-hidden="true">
+            <span class="brand-mark">
+                <svg viewBox="0 0 32 32" width="22" height="22">
+                    <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2"></circle>
+                    <path d="M16 6 L20.5 13.5 H11.5 Z" fill="currentColor"></path>
+                    <path d="M26 16 L18.5 20.5 V11.5 Z" fill="currentColor" opacity="0.75"></path>
+                    <path d="M16 26 L11.5 18.5 H20.5 Z" fill="currentColor" opacity="0.55"></path>
+                    <path d="M6 16 L13.5 11.5 V20.5 Z" fill="currentColor" opacity="0.9"></path>
+                </svg>
+            </span>
+        </div>
+
         <header class="topbar">
             <div class="brand">
                 <span class="brand-mark" aria-hidden="true">
@@ -43,14 +55,14 @@
                 </div>
             </div>
 
-            <div class="image-meta" id="imageMeta" hidden>
-                <span class="file-name" id="fileName"></span>
-                <span id="imageSize"></span>
+            <div class="image-meta" data-image-meta hidden>
+                <span class="file-name" data-file-name></span>
+                <span data-image-size></span>
             </div>
 
-            <div class="topbar-actions" id="topbarActions" hidden>
-                <button type="button" class="ghost-btn" id="changeBtn">Change image</button>
-                <button type="button" class="primary-btn" id="downloadBtn">Download</button>
+            <div class="topbar-actions" data-editor-actions hidden>
+                <button type="button" class="ghost-btn js-change-image">Change image</button>
+                <button type="button" class="primary-btn js-download">Download</button>
             </div>
         </header>
 
@@ -85,7 +97,32 @@
                 </div>
             </div>
 
-            <aside class="filters-panel" id="filtersPanel" hidden>
+            <div class="sheet-scrim" id="sheetScrim" hidden></div>
+
+            <aside class="sheet" id="sheet" hidden role="dialog" aria-modal="false" aria-label="Editor tools">
+                <div class="sheet-header" id="sheetHeader">
+                    <button type="button" class="sheet-handle" id="sheetHandle" aria-expanded="false" aria-controls="sheetPanels" aria-label="Toggle editor drawer">
+                        <span class="sheet-grip" aria-hidden="true"></span>
+                    </button>
+                    <div class="tab-bar" role="tablist" aria-label="Editor sections">
+                        <button type="button" class="tab-btn" role="tab" id="tabImage" aria-controls="panelImage" aria-selected="false" tabindex="-1">Image</button>
+                        <button type="button" class="tab-btn is-active" role="tab" id="tabFilters" aria-controls="filtersPanel" aria-selected="true" tabindex="0">Filters</button>
+                    </div>
+                </div>
+
+                <div class="sheet-panels" id="sheetPanels">
+                    <div class="sheet-panel" role="tabpanel" id="panelImage" aria-labelledby="tabImage" hidden>
+                        <div class="image-meta" data-image-meta>
+                            <span class="file-name" data-file-name></span>
+                            <span data-image-size></span>
+                        </div>
+                        <div class="sheet-actions" data-editor-actions>
+                            <button type="button" class="ghost-btn js-change-image">Change image</button>
+                            <button type="button" class="primary-btn js-download">Download</button>
+                        </div>
+                    </div>
+
+                    <div class="sheet-panel filters-panel" role="tabpanel" id="filtersPanel" aria-labelledby="tabFilters">
                 <div class="panel-header">
                     <div>
                         <h2>Filters</h2>
@@ -322,6 +359,8 @@
                         </span>
                         <input type="range" id="aberration" data-unit="px" min="0" max="20" step="1" value="0">
                     </label>
+                </div>
+                    </div>
                 </div>
             </aside>
         </main>

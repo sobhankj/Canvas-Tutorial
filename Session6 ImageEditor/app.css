@@ -2,14 +2,24 @@
     --bg: #0c0e14;
     --bg-elevated: #141824;
     --surface: #1a1f2e;
+    --panel: #1a1f2e;
     --line: #2c3348;
     --text: #f3f5fb;
+    --ink: #f3f5fb;
     --muted: #97a0b8;
+    --ink-dim: #97a0b8;
     --accent: #8b7cff;
     --accent-soft: rgba(139, 124, 255, 0.16);
     --mint: #5eead4;
     --danger: #f07178;
     --shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+    --sheet-peek: 64px;
+    --sheet-half: 55vh;
+    --sheet-full: 90vh;
+}
+
+* {
+    box-sizing: border-box;
 }
 
 .svg-fx {
@@ -24,9 +34,20 @@
     display: none !important;
 }
 
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+html,
 body {
     margin: 0;
-    min-height: 100vh;
+    height: 100%;
+}
+
+body {
+    min-height: 100dvh;
+    overflow: hidden;
     color: var(--text);
     font-family: "Segoe UI", system-ui, sans-serif;
     background:
@@ -36,20 +57,22 @@ body {
 }
 
 .editor {
+    position: relative;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100dvh;
 }
 
 .topbar {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: 16px;
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--line);
-    background: rgba(20, 24, 36, 0.86);
-    backdrop-filter: blur(16px);
+    display: none;
+}
+
+.brand-float {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 6;
+    pointer-events: none;
 }
 
 .brand {
@@ -69,15 +92,15 @@ body {
     border-radius: 12px;
 }
 
+.brand-float .brand-mark {
+    width: 36px;
+    height: 36px;
+}
+
 .brand strong {
     display: block;
     font-size: 16px;
     letter-spacing: 0.02em;
-}
-
-.brand span {
-    color: var(--muted);
-    font-size: 12px;
 }
 
 .image-meta {
@@ -100,16 +123,7 @@ body {
     white-space: nowrap;
 }
 
-.meta-dot {
-    width: 5px;
-    height: 5px;
-    background: var(--mint);
-    border-radius: 50%;
-    box-shadow: 0 0 10px var(--mint);
-}
-
 .ghost-btn {
-    justify-self: end;
     padding: 9px 14px;
     color: var(--text);
     background: transparent;
@@ -125,7 +139,6 @@ body {
 
 .topbar-actions {
     display: flex;
-    justify-self: end;
     gap: 10px;
 }
 
@@ -144,18 +157,16 @@ body {
 }
 
 .workspace {
+    position: relative;
     display: grid;
     place-items: center;
     flex: 1;
-    padding: 32px 24px 40px;
+    min-height: 0;
+    padding: 16px 16px 24px;
 }
 
 .workspace.is-editing {
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 20px;
-    place-items: unset;
+    padding: 0;
 }
 
 .dropzone {
@@ -165,8 +176,8 @@ body {
     align-items: center;
     justify-content: center;
     width: min(720px, 100%);
-    min-height: 420px;
-    padding: 48px 32px;
+    min-height: 320px;
+    padding: 32px 20px;
     overflow: hidden;
     color: var(--text);
     text-align: center;
@@ -190,7 +201,7 @@ body {
 }
 
 .dropzone-title {
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 650;
 }
 
@@ -230,21 +241,26 @@ body {
 .canvas-stage {
     display: grid;
     place-items: center;
-    flex: 1;
-    min-width: 0;
+    width: 100%;
     height: 100%;
-    overflow: visible;
+    overflow: hidden;
+}
+
+.workspace.is-editing .canvas-stage {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: 12px;
 }
 
 .canvas-frame {
-    padding: 14px;
+    max-width: 100%;
+    max-height: 100%;
+    padding: 0;
     overflow: visible;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
-        var(--bg-elevated);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    box-shadow: var(--shadow);
+    background: none;
+    border: none;
+    box-shadow: none;
 }
 
 .canvas-board {
@@ -274,16 +290,12 @@ body {
 
 canvas {
     display: block;
-    max-width: min(100%, calc(100vw - 96px));
-    max-height: calc(100vh - 180px);
+    max-width: 100%;
+    max-height: calc(100dvh - 24px);
     width: auto;
     height: auto;
     background: transparent;
     border-radius: 8px;
-}
-
-.workspace.is-editing canvas {
-    max-width: 100%;
 }
 
 .duotone-layer,
@@ -319,19 +331,135 @@ canvas {
     opacity: 0;
 }
 
+.sheet-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    background: rgba(8, 10, 16, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 250ms ease;
+}
+
+.sheet-scrim.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.sheet {
+    --sheet-visible: var(--sheet-peek);
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    height: var(--sheet-full);
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(26, 31, 46, 0.98), rgba(20, 24, 36, 0.98));
+    background-color: var(--panel);
+    border: 1px solid var(--line);
+    border-bottom: none;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.35);
+    transform: translateY(calc(100% - var(--sheet-visible)));
+    touch-action: auto;
+}
+
+.sheet.is-animating {
+    transition: transform 250ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.sheet-header {
+    flex-shrink: 0;
+    padding-bottom: 4px;
+    touch-action: none;
+}
+
+.sheet-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 12px 0 8px;
+    background: none;
+    border: none;
+    cursor: grab;
+}
+
+.sheet-handle:active {
+    cursor: grabbing;
+}
+
+.sheet-grip {
+    width: 40px;
+    height: 4px;
+    background: var(--line);
+    border-radius: 999px;
+}
+
+.tab-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin: 0 16px 8px;
+    padding: 4px;
+    background: #121622;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+}
+
+.tab-btn {
+    padding: 8px 12px;
+    color: var(--ink-dim);
+    background: transparent;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.tab-btn.is-active {
+    color: #0c0e14;
+    background: var(--accent);
+    font-weight: 650;
+}
+
+.sheet-panels {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.sheet-panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+    padding: 8px 16px 24px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+}
+
+.sheet-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sheet-actions .ghost-btn,
+.sheet-actions .primary-btn {
+    width: 100%;
+}
+
 .filters-panel {
     display: flex;
     flex-direction: column;
     gap: 14px;
-    width: 320px;
-    max-height: calc(100vh - 120px);
-    padding: 18px;
-    overflow: auto;
-    background: linear-gradient(180deg, rgba(26, 31, 46, 0.96), rgba(20, 24, 36, 0.96));
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    box-shadow: var(--shadow);
-    flex-shrink: 0;
 }
 
 .panel-header {
@@ -354,7 +482,6 @@ canvas {
 }
 
 .panel-header .ghost-btn {
-    justify-self: unset;
     padding: 6px 10px;
     font-size: 13px;
 }
@@ -578,40 +705,124 @@ input[type="color"]::-moz-color-swatch {
     border-radius: 5px;
 }
 
-@media (max-width: 980px) {
-    .workspace.is-editing {
-        flex-direction: column;
-        align-items: center;
+@media (prefers-reduced-motion: reduce) {
+    .sheet.is-animating,
+    .sheet-scrim {
+        transition-duration: 160ms;
+        transition-timing-function: ease;
     }
 
-    .filters-panel {
-        width: min(320px, 100%);
-        max-height: none;
+    .dropzone {
+        transition: none;
     }
 }
 
-@media (max-width: 760px) {
-    .topbar {
-        grid-template-columns: 1fr auto;
-        padding: 14px 16px;
+@media (min-width: 768px) {
+    body {
+        overflow: auto;
     }
 
-    .image-meta {
-        grid-column: 1 / -1;
-        justify-content: center;
-        order: 3;
+    .editor {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .brand-float,
+    .sheet-scrim,
+    .sheet-handle,
+    .tab-bar,
+    #panelImage {
+        display: none !important;
+    }
+
+    .topbar {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(20, 24, 36, 0.86);
+        backdrop-filter: blur(16px);
     }
 
     .topbar-actions {
         justify-self: end;
     }
 
+    .workspace {
+        padding: 32px 24px 40px;
+    }
+
+    .workspace.is-editing {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 20px;
+        padding: 32px 24px 40px;
+    }
+
     .dropzone {
-        min-height: 340px;
-        padding: 32px 20px;
+        min-height: 420px;
+        padding: 48px 32px;
     }
 
     .dropzone-title {
-        font-size: 22px;
+        font-size: 28px;
+    }
+
+    .workspace.is-editing .canvas-stage {
+        position: static;
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+        padding: 0;
+        overflow: visible;
+    }
+
+    .canvas-frame {
+        padding: 14px;
+        background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
+            var(--bg-elevated);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+    }
+
+    canvas {
+        max-width: min(100%, calc(100vw - 420px));
+        max-height: calc(100vh - 180px);
+    }
+
+    .sheet {
+        position: relative;
+        right: auto;
+        bottom: auto;
+        left: auto;
+        z-index: auto;
+        width: 320px;
+        height: auto;
+        max-height: calc(100vh - 120px);
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        transform: none;
+        touch-action: auto;
+        flex-shrink: 0;
+    }
+
+    .sheet-header {
+        display: none;
+    }
+
+    .sheet-panels,
+    .filters-panel {
+        display: flex;
+        overflow: auto;
+    }
+
+    .sheet-panel {
+        padding: 18px;
     }
 }

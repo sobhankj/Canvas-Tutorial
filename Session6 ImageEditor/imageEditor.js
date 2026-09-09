@@ -972,11 +972,12 @@ updateThresholdGrayscaleLock();
 
 const DESKTOP_QUERY = window.matchMedia('(min-width: 768px)');
 const SNAP_NAMES = ['peek', 'half', 'full'];
+const SHEET_PEEK = 80;
 const FLING_VELOCITY = 0.45;
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 let sheetSnap = 'peek';
-let sheetVisible = 64;
+let sheetVisible = SHEET_PEEK;
 let sheetDragging = false;
 let dragStartY = 0;
 let dragStartVisible = 0;
@@ -997,9 +998,9 @@ function isDesktopLayout() {
 function snapHeights() {
     const minImage = Math.round(window.innerHeight * 0.26);
     const available = workspace.clientHeight || window.innerHeight;
-    const maxSheet = Math.max(64, available - minImage);
+    const maxSheet = Math.max(SHEET_PEEK, available - minImage);
     return {
-        peek: 64,
+        peek: SHEET_PEEK,
         half: Math.min(Math.round(window.innerHeight * 0.55), maxSheet),
         full: Math.min(Math.round(window.innerHeight * 0.9), maxSheet)
     };
@@ -1059,7 +1060,7 @@ function toggleSheetFromHandle() {
     setSheetSnap('peek');
 }
 
-function selectTab(name) {
+function selectTab(name, openIfPeeked = false) {
     const showImage = name === 'image';
     tabImage.classList.toggle('is-active', showImage);
     tabFilters.classList.toggle('is-active', !showImage);
@@ -1069,6 +1070,10 @@ function selectTab(name) {
     tabFilters.tabIndex = showImage ? -1 : 0;
     panelImage.hidden = !showImage;
     filtersPanel.hidden = showImage;
+
+    if (openIfPeeked && !isDesktopLayout() && sheetSnap === 'peek') {
+        setSheetSnap('half');
+    }
 }
 
 function syncSheetForViewport() {
@@ -1206,8 +1211,8 @@ sheetHandle.addEventListener('keydown', (event) => {
     }
 });
 
-tabImage.addEventListener('click', () => selectTab('image'));
-tabFilters.addEventListener('click', () => selectTab('filters'));
+tabImage.addEventListener('click', () => selectTab('image', true));
+tabFilters.addEventListener('click', () => selectTab('filters', true));
 
 function onTabKeydown(event, current) {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {

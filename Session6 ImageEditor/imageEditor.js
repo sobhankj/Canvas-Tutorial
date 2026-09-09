@@ -82,6 +82,8 @@ const duotoneMatrix = document.getElementById('duotoneMatrix');
 let sourceImage = null;
 let objectUrl = null;
 let sourceFileName = 'image';
+let sourceFileSize = 0;
+let sourceMimeType = 'image/jpeg';
 let motionAngle = 0;
 let canvasFxTimer = null;
 let isBusy = false;
@@ -749,22 +751,110 @@ function renderFilteredImage() {
     return exportCanvas;
 }
 
-function canvasToBlob(sourceCanvas) {
+function canvasToBlob(sourceCanvas, type = 'image/jpeg', quality) {
     return new Promise((resolve, reject) => {
-        sourceCanvas.toBlob((blob) => {
+        const done = (blob) => {
             if (blob) {
                 resolve(blob);
                 return;
             }
 
             reject(new Error('Could not create the image file.'));
-        }, 'image/png');
+        };
+
+        if (typeof quality === 'number') {
+            sourceCanvas.toBlob(done, type, quality);
+            return;
+        }
+
+        sourceCanvas.toBlob(done, type);
     });
 }
 
-function getDownloadName() {
+function supportsExportType(type) {
+    try {
+        const probe = document.createElement('canvas');
+        probe.width = 1;
+        probe.height = 1;
+        return probe.toDataURL(type).startsWith(`data:${type}`);
+    } catch (error) {
+        return false;
+    }
+}
+
+function needsTransparentExport() {
+    return shadowEnabled.checked || Number(document.getElementById('opacity').value) < 100;
+}
+
+function flattenOnWhite(sourceCanvas) {
+    const flat = document.createElement('canvas');
+    flat.width = sourceCanvas.width;
+    flat.height = sourceCanvas.height;
+    const flatCtx = flat.getContext('2d');
+    flatCtx.fillStyle = '#ffffff';
+    flatCtx.fillRect(0, 0, flat.width, flat.height);
+    flatCtx.drawImage(sourceCanvas, 0, 0);
+    return flat;
+}
+
+async function encodeWithTargetSize(sourceCanvas, type, targetSize) {
+    const defaultQuality = 0.86;
+    if (!targetSize) {
+        return canvasToBlob(sourceCanvas, type, defaultQuality);
+    }
+
+    const maxOk = Math.max(Math.round(targetSize * 1.2), targetSize + 150 * 1024);
+    let low = 0.55;
+    let high = 0.95;
+    let bestUnder = null;
+    let bestOver = null;
+
+    for (let i = 0; i < 7; i += 1) {
+        const quality = i === 0 ? defaultQuality : (low + high) / 2;
+        const blob = await canvasToBlob(sourceCanvas, type, quality);
+
+        if (blob.size <= maxOk) {
+            bestUnder = blob;
+            low = quality;
+        } else {
+            bestOver = !bestOver || blob.size < bestOver.size ? blob : bestOver;
+            high = quality;
+        }
+    }
+
+    return bestUnder || bestOver || canvasToBlob(sourceCanvas, type, defaultQuality);
+}
+
+async function exportImageBlob(exportCanvas) {
+    const transparent = needsTransparentExport();
+
+    if (transparent) {
+        if (supportsExportType('image/webp')) {
+            const blob = await encodeWithTargetSize(exportCanvas, 'image/webp', sourceFileSize);
+            return { blob, ext: 'webp' };
+        }
+
+        const blob = await canvasToBlob(exportCanvas, 'image/png');
+        return { blob, ext: 'png' };
+    }
+
+    const original = (sourceMimeType || '').toLowerCase();
+    let type = 'image/jpeg';
+    let ext = 'jpg';
+
+    if (original.includes('webp') && supportsExportType('image/webp')) {
+        type = 'image/webp';
+        ext = 'webp';
+    }
+
+    const flat = flattenOnWhite(exportCanvas);
+    const blob = await encodeWithTargetSize(flat, type, sourceFileSize);
+    return { blob, ext };
+}
+
+function getDownloadName(ext = 'jpg') {
     const baseName = sourceFileName.replace(/\.[^.]+$/, '') || 'image';
-    return `${baseName}-edited.png`;
+    return `${baseName}-edited.${ext}`;
 }
 
 async function downloadImage() {
@@ -779,16 +869,16 @@ async function downloadImage() {
         await waitFrame();
 
         const exportCanvas = renderFilteredImage();
-        setProgress(72);
+        setProgress(55);
         await waitFrame();
 
-        const blob = await canvasToBlob(exportCanvas);
+        const { blob, ext } = await exportImageBlob(exportCanvas);
         setProgress(90);
 
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = getDownloadName();
+        link.download = getDownloadName(ext);
         link.click();
         URL.revokeObjectURL(url);
 
@@ -847,6 +937,8 @@ async function loadImageFile(file) {
         await waitFrame();
 
         sourceImage = img;
+        sourceFileSize = file.size || 0;
+        sourceMimeType = file.type || 'image/jpeg';
         drawImageToCanvas(img);
         showEditor(file, img);
         scheduleCanvasEffects(true);

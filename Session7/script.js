@@ -19,7 +19,7 @@ function randomCircleColor() {
 function createCircle() {
     const angle = Math.random() * Math.PI * 2;
     const speed = Math.random() * 300 + 10;
-    const radius = Math.random() * 5 + 5;
+    const radius = Math.random() * 10 + 2;
 
     return {
         x: Math.random() * (canvas.width - radius * 2) + radius,
@@ -33,7 +33,7 @@ function createCircle() {
 }
 
 const circles = [];
-for (let i = 0; i < 90; i++) {
+for (let i = 0; i < 200; i++) {
     circles.push(createCircle());
 }
 
@@ -58,13 +58,16 @@ function bounce(circle) {
 }
 
 function drawCircle(circle) {
+    cnx.save();
+    cnx.globalAlpha = circle.opacity ?? 1;
     cnx.strokeStyle = circle.color;
     cnx.fillStyle = circle.color;
     cnx.lineWidth = 2;
     cnx.beginPath();
-    cnx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2, false);
+    cnx.arc(circle.x, circle.y, Math.max(circle.radius, 0.01), 0, Math.PI * 2, false);
     cnx.stroke();
     cnx.fill();
+    cnx.restore();
 }
 
 const BOX_SIZE = 150;
@@ -219,11 +222,49 @@ function isMouseCircleDead(circle) {
     return circle.opacity <= 0 || circle.radius <= 0.2;
 }
 
+function releaseMouseCircles() {
+    for (let i = mouseCircles.length - 1; i >= 0; i--) {
+        const circle = mouseCircles[i];
+
+        if (circle.inTail || !isInsideMouseBox(circle)) {
+            continue;
+        }
+
+        const angle = Math.random() * Math.PI * 2;
+        const burst = Math.random() * 520 + 220;
+
+        circles.push({
+            x: circle.x,
+            y: circle.y,
+            radius: circle.radius,
+            speed: burst,
+            vx: circle.vx * 0.3 + Math.cos(angle) * burst,
+            vy: circle.vy * 0.3 + Math.sin(angle) * burst,
+            color: circle.color,
+            opacity: 1,
+            age: 0,
+            life: Math.random() * 5,
+            deathRadius: null,
+            launched: true
+        });
+
+        mouseCircles.splice(i, 1);
+    }
+}
+
 window.addEventListener('mousemove', (e) => {
     mouse.x = e.clientX;
     mouse.y = e.clientY;
     lastMoveTime = performance.now();
     mouseReady = true;
+});
+
+window.addEventListener('click', () => {
+    if (!mouseReady) {
+        return;
+    }
+
+    releaseMouseCircles();
 });
 
 window.addEventListener('resize', () => {
@@ -246,12 +287,28 @@ function animate(now) {
 
     cnx.clearRect(0, 0, canvas.width, canvas.height);
 
-    circles.forEach((circle) => {
+    for (let i = circles.length - 1; i >= 0; i--) {
+        const circle = circles[i];
         circle.x += circle.vx * dt;
         circle.y += circle.vy * dt;
         bounce(circle);
+
+        if (circle.launched) {
+            circle.age += dt;
+
+            if (circle.age >= circle.life) {
+                startDying(circle);
+                updateDying(circle, dt);
+
+                if (circle.opacity <= 0 || circle.radius <= 0.2) {
+                    circles.splice(i, 1);
+                    continue;
+                }
+            }
+        }
+
         drawCircle(circle);
-    });
+    }
 
     if (mouseReady) {
         spawnTimer += dt;

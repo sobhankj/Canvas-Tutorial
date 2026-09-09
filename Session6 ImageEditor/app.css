@@ -64,15 +64,18 @@ body {
 }
 
 .topbar {
-    display: none;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(20, 24, 36, 0.86);
+    backdrop-filter: blur(16px);
 }
 
-.brand-float {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    z-index: 6;
-    pointer-events: none;
+.topbar .image-meta,
+.topbar .topbar-actions {
+    display: none;
 }
 
 .brand {
@@ -90,11 +93,6 @@ body {
     background: var(--accent-soft);
     border: 1px solid rgba(139, 124, 255, 0.35);
     border-radius: 12px;
-}
-
-.brand-float .brand-mark {
-    width: 36px;
-    height: 36px;
 }
 
 .brand strong {
@@ -169,13 +167,40 @@ body {
     padding: 0;
 }
 
+.landing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: min(720px, 100%);
+}
+
+.welcome {
+    padding: 0 8px;
+    text-align: center;
+}
+
+.welcome h1 {
+    margin: 0 0 8px;
+    font-size: 26px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+}
+
+.welcome p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.55;
+}
+
 .dropzone {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: min(720px, 100%);
+    width: 100%;
     min-height: 320px;
     padding: 32px 20px;
     overflow: hidden;
@@ -801,7 +826,12 @@ input[type="color"]::-moz-color-swatch {
         backdrop-filter: blur(16px);
     }
 
-    .topbar-actions {
+    .topbar .image-meta {
+        display: flex;
+    }
+
+    .topbar .topbar-actions {
+        display: flex;
         justify-self: end;
     }
 
@@ -818,8 +848,13 @@ input[type="color"]::-moz-color-swatch {
     }
 
     .dropzone {
+        width: 100%;
         min-height: 420px;
         padding: 48px 32px;
+    }
+
+    .welcome h1 {
+        font-size: 32px;
     }
 
     .dropzone-title {

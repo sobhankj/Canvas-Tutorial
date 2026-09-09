@@ -7,6 +7,7 @@ const CANVAS_FX_AVAILABLE = Boolean(document.createElement('canvas').getContext(
 
 const fileInput = document.getElementById('fileInput');
 const dropzone = document.getElementById('dropzone');
+const landing = document.getElementById('landing');
 const workspace = document.getElementById('workspace');
 const canvasStage = document.getElementById('canvasStage');
 const canvas = document.getElementById('canvas');
@@ -184,6 +185,7 @@ function decodeImage(url) {
 function showEditor(file, img) {
     dropzone.hidden = true;
     dropError.hidden = true;
+    landing.hidden = true;
     canvasStage.hidden = false;
     sheet.hidden = false;
     document.querySelectorAll('[data-image-meta], [data-editor-actions]').forEach((el) => {
@@ -201,8 +203,11 @@ function showEditor(file, img) {
     });
     applyFilters();
     if (!isDesktopLayout()) {
-        setSheetSnap('peek', false);
         selectTab('filters');
+        setSheetSnap('peek', false);
+        waitFrame().then(() => {
+            setSheetSnap('half', true);
+        });
     }
 }
 

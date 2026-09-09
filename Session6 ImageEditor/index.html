@@ -118,7 +118,7 @@
                     </div>
 
                     <div class="sheet-panel filters-panel" role="tabpanel" id="filtersPanel" aria-labelledby="tabFilters">
-                <div class="panel-header">
+                <div class="panel-header" id="filtersHeader">
                     <div>
                         <h2>Filters</h2>
                         <p>Adjust the look of the image</p>
@@ -126,234 +126,322 @@
                     <button type="button" class="ghost-btn" id="resetFiltersBtn">Reset</button>
                 </div>
 
-                <label class="filter-control">
-                    <span class="filter-label">
-                        <span>Blur</span>
-                        <span data-value-for="blur">0px</span>
-                    </span>
-                    <input type="range" id="blur" data-filter="blur" data-unit="px" min="0" max="25" step="0.1" value="0">
-                </label>
-
-                <label class="filter-control">
-                    <span class="filter-label">
-                        <span>Brightness</span>
-                        <span data-value-for="brightness">1</span>
-                    </span>
-                    <input type="range" id="brightness" data-filter="brightness" min="0" max="3" step="0.01" value="1">
-                </label>
-
-                <label class="filter-control">
-                    <span class="filter-label">
-                        <span>Contrast</span>
-                        <span data-value-for="contrast">100%</span>
-                    </span>
-                    <input type="range" id="contrast" data-filter="contrast" data-unit="%" min="0" max="300" step="1" value="100">
-                </label>
-
-                <label class="filter-control" id="grayscaleControl">
-                    <span class="filter-label">
-                        <span>Grayscale</span>
-                        <span data-value-for="grayscale">0%</span>
-                    </span>
-                    <input type="range" id="grayscale" data-filter="grayscale" data-unit="%" min="0" max="100" step="1" value="0">
-                </label>
-
-                <label class="filter-control">
-                    <span class="filter-label">
-                        <span>Hue Rotate</span>
-                        <span data-value-for="hueRotate">0deg</span>
-                    </span>
-                    <input type="range" id="hueRotate" data-filter="hue-rotate" data-unit="deg" min="0" max="360" step="1" value="0">
-                </label>
-
-                <label class="filter-control">
-                    <span class="filter-label">
-                        <span>Invert</span>
-                        <span data-value-for="invert">0%</span>
-                    </span>
-                    <input type="range" id="invert" data-filter="invert" data-unit="%" min="0" max="100" step="1" value="0">
-                </label>
-
-                <label class="filter-control">
-                    <span class="filter-label">
-                        <span>Opacity</span>
-                        <span data-value-for="opacity">100%</span>
-                    </span>
-                    <input type="range" id="opacity" data-filter="opacity" data-unit="%" min="0" max="100" step="1" value="100">
-                </label>
-
-                <label class="filter-control">
-                    <span class="filter-label">
-                        <span>Saturate</span>
-                        <span data-value-for="saturate">1</span>
-                    </span>
-                    <input type="range" id="saturate" data-filter="saturate" min="0" max="10" step="0.1" value="1">
-                </label>
-
-                <label class="filter-control">
-                    <span class="filter-label">
-                        <span>Sepia</span>
-                        <span data-value-for="sepia">0%</span>
-                    </span>
-                    <input type="range" id="sepia" data-filter="sepia" data-unit="%" min="0" max="100" step="1" value="0">
-                </label>
-
-                <div class="filter-group">
-                    <h3>Effects</h3>
-
-                    <label class="filter-control">
-                        <span class="filter-label">
-                            <span>Vignette</span>
-                            <span data-value-for="vignette">0%</span>
+                <div class="category-grid" id="categoryGrid">
+                    <button type="button" class="category-tile" data-open-category="light">
+                        <span class="category-tile-dot" data-category-dot="light" hidden></span>
+                        <span class="category-tile-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                                <circle cx="12" cy="12" r="4"></circle>
+                                <path stroke-linecap="round" d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.41 1.41M16.95 16.95l1.41 1.41M5.64 18.36l1.41-1.41M16.95 7.05l1.41-1.41"></path>
+                            </svg>
                         </span>
-                        <input type="range" id="vignette" data-unit="%" min="0" max="100" step="1" value="0">
-                    </label>
-
-                    <label class="filter-control">
-                        <span class="filter-label">
-                            <span>Grain</span>
-                            <span data-value-for="grain">0%</span>
+                        <span class="category-tile-label">Light</span>
+                        <span class="category-tile-caption" data-category-caption="light" hidden></span>
+                    </button>
+                    <button type="button" class="category-tile" data-open-category="color">
+                        <span class="category-tile-dot" data-category-dot="color" hidden></span>
+                        <span class="category-tile-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                                <path stroke-linejoin="round" d="M12 3s6.5 7.2 6.5 11.1A6.5 6.5 0 1 1 5.5 14.1C5.5 10.2 12 3 12 3z"></path>
+                                <path stroke-linecap="round" d="M9.2 14.2c.4 1.8 1.7 2.8 3.3 2.8"></path>
+                            </svg>
                         </span>
-                        <input type="range" id="grain" data-unit="%" min="0" max="100" step="1" value="0">
-                    </label>
-
-                    <div class="swatch-row">
-                        <label class="swatch-control">
-                            <span>Shadows</span>
-                            <input type="color" id="duotoneShadows" value="#1b3654">
-                        </label>
-                        <label class="swatch-control">
-                            <span>Highlights</span>
-                            <input type="color" id="duotoneHighlights" value="#f2d5b0">
-                        </label>
-                    </div>
-
-                    <label class="filter-control">
-                        <span class="filter-label">
-                            <span>Duotone mix</span>
-                            <span data-value-for="duotoneMix">0%</span>
+                        <span class="category-tile-label">Color</span>
+                        <span class="category-tile-caption" data-category-caption="color" hidden></span>
+                    </button>
+                    <button type="button" class="category-tile" data-open-category="blur">
+                        <span class="category-tile-dot" data-category-dot="blur" hidden></span>
+                        <span class="category-tile-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                                <circle cx="9" cy="12" r="5.5" opacity="0.4"></circle>
+                                <circle cx="15" cy="12" r="5.5"></circle>
+                            </svg>
                         </span>
-                        <input type="range" id="duotoneMix" data-unit="%" min="0" max="100" step="1" value="0">
-                    </label>
-
-                    <label class="filter-control">
-                        <span class="filter-label">
-                            <span>Sharpen</span>
-                            <span data-value-for="sharpen">0%</span>
+                        <span class="category-tile-label">Blur &amp; sharpen</span>
+                        <span class="category-tile-caption" data-category-caption="blur" hidden></span>
+                    </button>
+                    <button type="button" class="category-tile" data-open-category="tone">
+                        <span class="category-tile-dot" data-category-dot="tone" hidden></span>
+                        <span class="category-tile-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                                <circle cx="12" cy="12" r="8"></circle>
+                                <path stroke-linecap="round" d="M12 12l4.2-4.2"></path>
+                                <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"></circle>
+                            </svg>
                         </span>
-                        <input type="range" id="sharpen" data-unit="%" min="0" max="100" step="1" value="0">
-                    </label>
-
-                    <label class="filter-control">
-                        <span class="filter-label">
-                            <span>Midtones</span>
-                            <span data-value-for="midtones">0</span>
+                        <span class="category-tile-label">Tone &amp; style</span>
+                        <span class="category-tile-caption" data-category-caption="tone" hidden></span>
+                    </button>
+                    <button type="button" class="category-tile" data-open-category="shadow">
+                        <span class="category-tile-dot" data-category-dot="shadow" hidden></span>
+                        <span class="category-tile-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                                <rect x="5" y="5" width="10" height="10" rx="2" opacity="0.4"></rect>
+                                <rect x="9" y="9" width="10" height="10" rx="2"></rect>
+                            </svg>
                         </span>
-                        <input type="range" id="midtones" min="-100" max="100" step="1" value="0">
-                    </label>
-
-                    <label class="filter-control">
-                        <span class="filter-label">
-                            <span>Motion blur</span>
-                            <span data-value-for="motionBlur">0px</span>
+                        <span class="category-tile-label">Drop shadow</span>
+                        <span class="category-tile-caption" data-category-caption="shadow" hidden></span>
+                    </button>
+                    <button type="button" class="category-tile" data-open-category="advanced">
+                        <span class="category-tile-dot" data-category-dot="advanced" hidden></span>
+                        <span class="category-tile-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                                <path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"></path>
+                                <circle cx="9" cy="7" r="1.7" fill="currentColor" stroke="none"></circle>
+                                <circle cx="15" cy="12" r="1.7" fill="currentColor" stroke="none"></circle>
+                                <circle cx="11" cy="17" r="1.7" fill="currentColor" stroke="none"></circle>
+                            </svg>
                         </span>
-                        <input type="range" id="motionBlur" data-unit="px" min="0" max="25" step="0.1" value="0">
-                    </label>
-
-                    <div class="angle-presets" id="motionAngle">
-                        <button type="button" class="angle-btn active" data-angle="0">0°</button>
-                        <button type="button" class="angle-btn" data-angle="45">45°</button>
-                        <button type="button" class="angle-btn" data-angle="90">90°</button>
-                        <button type="button" class="angle-btn" data-angle="135">135°</button>
-                    </div>
+                        <span class="category-tile-label">Advanced</span>
+                        <span class="category-tile-caption" data-category-caption="advanced" hidden></span>
+                    </button>
                 </div>
 
-                <div class="filter-group">
-                    <label class="toggle-row">
-                        <span>
-                            <strong>Drop Shadow</strong>
-                            <small>Optional outline glow</small>
-                        </span>
-                        <input type="checkbox" id="shadowEnabled">
-                    </label>
-
-                    <div class="shadow-settings" id="shadowSettings" hidden>
-                        <label class="filter-control">
-                            <span class="filter-label">
-                                <span>Offset X</span>
-                                <span data-value-for="shadowX">8px</span>
-                            </span>
-                            <input type="range" id="shadowX" data-unit="px" min="-40" max="40" step="1" value="8">
-                        </label>
-
-                        <label class="filter-control">
-                            <span class="filter-label">
-                                <span>Offset Y</span>
-                                <span data-value-for="shadowY">8px</span>
-                            </span>
-                            <input type="range" id="shadowY" data-unit="px" min="-40" max="40" step="1" value="8">
-                        </label>
-
-                        <label class="filter-control">
-                            <span class="filter-label">
-                                <span>Blur</span>
-                                <span data-value-for="shadowBlur">10px</span>
-                            </span>
-                            <input type="range" id="shadowBlur" data-unit="px" min="0" max="40" step="1" value="10">
-                        </label>
-
-                        <label class="filter-control filter-control-color">
-                            <span class="filter-label">
-                                <span>Color</span>
-                                <span data-value-for="shadowColor">#008000</span>
-                            </span>
-                            <input type="color" id="shadowColor" value="#008000">
-                        </label>
+                <div class="category-detail" id="categoryDetail" hidden>
+                    <div class="category-sub-header" id="categorySubHeader">
+                        <button type="button" class="category-back-btn" id="categoryBackBtn">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 5l-7 7 7 7"></path>
+                            </svg>
+                            <span id="categoryTitle">Light</span>
+                        </button>
+                        <button type="button" class="category-reset-link" id="categoryResetBtn">Reset</button>
                     </div>
-                </div>
 
-                <div class="filter-group" id="advancedGroup">
-                    <h3>Advanced</h3>
+                    <div class="category-body">
+                        <div class="filter-group" data-category="light" hidden>
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Brightness</span>
+                                    <span data-value-for="brightness">1</span>
+                                </span>
+                                <input type="range" id="brightness" data-filter="brightness" min="0" max="3" step="0.01" value="1">
+                            </label>
 
-                    <label class="filter-control">
-                        <span class="filter-label">
-                            <span>Posterize levels</span>
-                            <span data-value-for="posterize">Off</span>
-                        </span>
-                        <input type="range" id="posterize" min="0" max="16" step="1" value="0">
-                    </label>
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Contrast</span>
+                                    <span data-value-for="contrast">100%</span>
+                                </span>
+                                <input type="range" id="contrast" data-filter="contrast" data-unit="%" min="0" max="300" step="1" value="100">
+                            </label>
 
-                    <label class="toggle-row">
-                        <span>
-                            <strong>B&amp;W threshold</strong>
-                            <small>Replaces grayscale</small>
-                        </span>
-                        <input type="checkbox" id="thresholdEnabled">
-                    </label>
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Opacity</span>
+                                    <span data-value-for="opacity">100%</span>
+                                </span>
+                                <input type="range" id="opacity" data-filter="opacity" data-unit="%" min="0" max="100" step="1" value="100">
+                            </label>
+                        </div>
 
-                    <label class="filter-control is-disabled" id="thresholdControl">
-                        <span class="filter-label">
-                            <span>Threshold</span>
-                            <span data-value-for="threshold">128</span>
-                        </span>
-                        <input type="range" id="threshold" min="0" max="255" step="1" value="128" disabled>
-                    </label>
+                        <div class="filter-group" data-category="color" hidden>
+                            <label class="filter-control" id="grayscaleControl">
+                                <span class="filter-label">
+                                    <span>Grayscale</span>
+                                    <span data-value-for="grayscale">0%</span>
+                                </span>
+                                <input type="range" id="grayscale" data-filter="grayscale" data-unit="%" min="0" max="100" step="1" value="0">
+                            </label>
 
-                    <label class="filter-control">
-                        <span class="filter-label">
-                            <span>Pixelate</span>
-                            <span data-value-for="pixelate">Off</span>
-                        </span>
-                        <input type="range" id="pixelate" data-unit="px" min="1" max="40" step="1" value="1">
-                    </label>
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Hue rotate</span>
+                                    <span data-value-for="hueRotate">0deg</span>
+                                </span>
+                                <input type="range" id="hueRotate" data-filter="hue-rotate" data-unit="deg" min="0" max="360" step="1" value="0">
+                            </label>
 
-                    <label class="filter-control">
-                        <span class="filter-label">
-                            <span>Chromatic aberration</span>
-                            <span data-value-for="aberration">0px</span>
-                        </span>
-                        <input type="range" id="aberration" data-unit="px" min="0" max="20" step="1" value="0">
-                    </label>
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Saturate</span>
+                                    <span data-value-for="saturate">1</span>
+                                </span>
+                                <input type="range" id="saturate" data-filter="saturate" min="0" max="10" step="0.1" value="1">
+                            </label>
+
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Sepia</span>
+                                    <span data-value-for="sepia">0%</span>
+                                </span>
+                                <input type="range" id="sepia" data-filter="sepia" data-unit="%" min="0" max="100" step="1" value="0">
+                            </label>
+
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Invert</span>
+                                    <span data-value-for="invert">0%</span>
+                                </span>
+                                <input type="range" id="invert" data-filter="invert" data-unit="%" min="0" max="100" step="1" value="0">
+                            </label>
+                        </div>
+
+                        <div class="filter-group" data-category="blur" hidden>
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Blur</span>
+                                    <span data-value-for="blur">0px</span>
+                                </span>
+                                <input type="range" id="blur" data-filter="blur" data-unit="px" min="0" max="25" step="0.1" value="0">
+                            </label>
+
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Motion blur</span>
+                                    <span data-value-for="motionBlur">0px</span>
+                                </span>
+                                <input type="range" id="motionBlur" data-unit="px" min="0" max="25" step="0.1" value="0">
+                            </label>
+
+                            <div class="angle-presets" id="motionAngle">
+                                <button type="button" class="angle-btn active" data-angle="0">0°</button>
+                                <button type="button" class="angle-btn" data-angle="45">45°</button>
+                                <button type="button" class="angle-btn" data-angle="90">90°</button>
+                                <button type="button" class="angle-btn" data-angle="135">135°</button>
+                            </div>
+
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Sharpen</span>
+                                    <span data-value-for="sharpen">0%</span>
+                                </span>
+                                <input type="range" id="sharpen" data-unit="%" min="0" max="100" step="1" value="0">
+                            </label>
+                        </div>
+
+                        <div class="filter-group" data-category="tone" hidden>
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Vignette</span>
+                                    <span data-value-for="vignette">0%</span>
+                                </span>
+                                <input type="range" id="vignette" data-unit="%" min="0" max="100" step="1" value="0">
+                            </label>
+
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Grain</span>
+                                    <span data-value-for="grain">0%</span>
+                                </span>
+                                <input type="range" id="grain" data-unit="%" min="0" max="100" step="1" value="0">
+                            </label>
+
+                            <div class="swatch-row">
+                                <label class="swatch-control">
+                                    <span>Shadows</span>
+                                    <input type="color" id="duotoneShadows" value="#1b3654">
+                                </label>
+                                <label class="swatch-control">
+                                    <span>Highlights</span>
+                                    <input type="color" id="duotoneHighlights" value="#f2d5b0">
+                                </label>
+                            </div>
+
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Duotone mix</span>
+                                    <span data-value-for="duotoneMix">0%</span>
+                                </span>
+                                <input type="range" id="duotoneMix" data-unit="%" min="0" max="100" step="1" value="0">
+                            </label>
+
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Midtones</span>
+                                    <span data-value-for="midtones">0</span>
+                                </span>
+                                <input type="range" id="midtones" min="-100" max="100" step="1" value="0">
+                            </label>
+                        </div>
+
+                        <div class="filter-group" data-category="shadow" hidden>
+                            <label class="toggle-row">
+                                <span>
+                                    <strong>Drop shadow</strong>
+                                    <small>Optional outline glow</small>
+                                </span>
+                                <input type="checkbox" id="shadowEnabled">
+                            </label>
+
+                            <div class="shadow-settings" id="shadowSettings" hidden>
+                                <label class="filter-control">
+                                    <span class="filter-label">
+                                        <span>Offset X</span>
+                                        <span data-value-for="shadowX">8px</span>
+                                    </span>
+                                    <input type="range" id="shadowX" data-unit="px" min="-40" max="40" step="1" value="8">
+                                </label>
+
+                                <label class="filter-control">
+                                    <span class="filter-label">
+                                        <span>Offset Y</span>
+                                        <span data-value-for="shadowY">8px</span>
+                                    </span>
+                                    <input type="range" id="shadowY" data-unit="px" min="-40" max="40" step="1" value="8">
+                                </label>
+
+                                <label class="filter-control">
+                                    <span class="filter-label">
+                                        <span>Blur</span>
+                                        <span data-value-for="shadowBlur">10px</span>
+                                    </span>
+                                    <input type="range" id="shadowBlur" data-unit="px" min="0" max="40" step="1" value="10">
+                                </label>
+
+                                <label class="filter-control filter-control-color">
+                                    <span class="filter-label">
+                                        <span>Color</span>
+                                        <span data-value-for="shadowColor">#008000</span>
+                                    </span>
+                                    <input type="color" id="shadowColor" value="#008000">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="filter-group" id="advancedGroup" data-category="advanced" hidden>
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Posterize levels</span>
+                                    <span data-value-for="posterize">Off</span>
+                                </span>
+                                <input type="range" id="posterize" min="0" max="16" step="1" value="0">
+                            </label>
+
+                            <label class="toggle-row">
+                                <span>
+                                    <strong>B&amp;W threshold</strong>
+                                    <small>Replaces grayscale</small>
+                                </span>
+                                <input type="checkbox" id="thresholdEnabled">
+                            </label>
+
+                            <label class="filter-control is-disabled" id="thresholdControl">
+                                <span class="filter-label">
+                                    <span>Threshold</span>
+                                    <span data-value-for="threshold">128</span>
+                                </span>
+                                <input type="range" id="threshold" min="0" max="255" step="1" value="128" disabled>
+                            </label>
+
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Pixelate</span>
+                                    <span data-value-for="pixelate">Off</span>
+                                </span>
+                                <input type="range" id="pixelate" data-unit="px" min="1" max="40" step="1" value="1">
+                            </label>
+
+                            <label class="filter-control">
+                                <span class="filter-label">
+                                    <span>Chromatic aberration</span>
+                                    <span data-value-for="aberration">0px</span>
+                                </span>
+                                <input type="range" id="aberration" data-unit="px" min="0" max="20" step="1" value="0">
+                            </label>
+                        </div>
+                    </div>
                 </div>
                     </div>
                 </div>

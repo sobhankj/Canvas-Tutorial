@@ -27,6 +27,25 @@ const tabFilters = document.getElementById('tabFilters');
 const panelImage = document.getElementById('panelImage');
 const filtersPanel = document.getElementById('filtersPanel');
 const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+const filtersHeader = document.getElementById('filtersHeader');
+const categoryGrid = document.getElementById('categoryGrid');
+const categoryDetail = document.getElementById('categoryDetail');
+const categorySubHeader = document.getElementById('categorySubHeader');
+const categoryBackBtn = document.getElementById('categoryBackBtn');
+const categoryResetBtn = document.getElementById('categoryResetBtn');
+const categoryTitle = document.getElementById('categoryTitle');
+const categoryGroups = document.querySelectorAll('[data-category]');
+
+const FILTER_CATEGORIES = {
+    light: { label: 'Light', controlCount: 3 },
+    color: { label: 'Color', controlCount: 5 },
+    blur: { label: 'Blur & sharpen', controlCount: 3 },
+    tone: { label: 'Tone & style', controlCount: 6 },
+    shadow: { label: 'Drop shadow', controlCount: 5 },
+    advanced: { label: 'Advanced', controlCount: 4 }
+};
+
+let activeCategoryId = null;
 const namedFilterInputs = document.querySelectorAll('[data-filter]');
 const shadowEnabled = document.getElementById('shadowEnabled');
 const shadowSettings = document.getElementById('shadowSettings');
@@ -87,7 +106,7 @@ if (!CANVAS_FX_AVAILABLE) {
     });
     const note = document.createElement('p');
     note.className = 'panel-note';
-    note.textContent = 'Canvas processing is not available in this browser.';
+    note.textContent = 'Live canvas preview is not available. These effects are applied when you download.';
     advancedGroup.append(note);
 }
 
@@ -368,22 +387,112 @@ function updateShadowSettings() {
     shadowSettings.hidden = !shadowEnabled.checked;
 }
 
-function resetFilters() {
-    filterInputs.forEach((input) => {
-        if (input.type === 'checkbox') {
-            input.checked = input.defaultChecked;
-            input.disabled = false;
-        } else {
-            input.value = input.defaultValue;
-            input.disabled = input.id === 'threshold';
-            updateValueLabel(input);
+function isInputDefault(input) {
+    if (input.type === 'checkbox') {
+        return input.checked === input.defaultChecked;
+    }
+
+    if (input.type === 'color') {
+        return input.value.toLowerCase() === input.defaultValue.toLowerCase();
+    }
+
+    return input.value === input.defaultValue;
+}
+
+function getCategoryInputs(id) {
+    const group = document.querySelector(`[data-category="${id}"]`);
+    return group ? [...group.querySelectorAll('input')] : [];
+}
+
+function getAdjustedCount(id) {
+    return getCategoryInputs(id).reduce((count, input) => (
+        count + (isInputDefault(input) ? 0 : 1)
+    ), 0);
+}
+
+function getDirtyCategoryCount() {
+    return Object.keys(FILTER_CATEGORIES).filter((id) => getAdjustedCount(id) > 0).length;
+}
+
+function updateCategoryIndicators() {
+    Object.keys(FILTER_CATEGORIES).forEach((id) => {
+        const count = getAdjustedCount(id);
+        const caption = document.querySelector(`[data-category-caption="${id}"]`);
+        const dot = document.querySelector(`[data-category-dot="${id}"]`);
+        if (caption) {
+            caption.hidden = count === 0;
+            caption.textContent = count === 1 ? '1 adjusted' : `${count} adjusted`;
+        }
+        if (dot) {
+            dot.hidden = count === 0;
         }
     });
-    setMotionAngle(0);
+}
+
+function resetInput(input) {
+    if (input.type === 'checkbox') {
+        input.checked = input.defaultChecked;
+        input.disabled = false;
+    } else {
+        input.value = input.defaultValue;
+        input.disabled = input.id === 'threshold';
+        updateValueLabel(input);
+    }
+}
+
+function commitFilterReset() {
     updateShadowSettings();
     updateThresholdGrayscaleLock();
     applyFilters();
     scheduleCanvasEffects(true);
+    updateCategoryIndicators();
+}
+
+function resetFilters() {
+    filterInputs.forEach(resetInput);
+    setMotionAngle(0);
+    commitFilterReset();
+}
+
+function resetCategory(id) {
+    getCategoryInputs(id).forEach(resetInput);
+    if (id === 'blur') {
+        setMotionAngle(0);
+    }
+    commitFilterReset();
+}
+
+function showCategoryGrid() {
+    activeCategoryId = null;
+    filtersPanel.classList.remove('is-category-open');
+    filtersHeader.hidden = false;
+    categoryGrid.hidden = false;
+    categoryDetail.hidden = true;
+    categoryGroups.forEach((group) => {
+        group.hidden = true;
+    });
+}
+
+function openCategory(id) {
+    const meta = FILTER_CATEGORIES[id];
+    if (!meta) {
+        return;
+    }
+
+    activeCategoryId = id;
+    filtersPanel.classList.add('is-category-open');
+    filtersHeader.hidden = true;
+    categoryGrid.hidden = true;
+    categoryDetail.hidden = false;
+    categoryTitle.textContent = meta.label;
+    categoryBackBtn.setAttribute('aria-label', 'Back to categories');
+    categoryGroups.forEach((group) => {
+        group.hidden = group.dataset.category !== id;
+    });
+
+    if (!isDesktopLayout() && meta.controlCount <= 3 && sheetSnap === 'full') {
+        setSheetSnap('half', true);
+    }
 }
 
 function hasCanvasEffects() {
@@ -829,6 +938,7 @@ filterInputs.forEach((input) => {
         }
 
         applyFilters();
+        updateCategoryIndicators();
 
         if (CANVAS_FX_IDS.has(input.id)) {
             scheduleCanvasEffects();
@@ -843,10 +953,17 @@ angleButtons.forEach((button) => {
     });
 });
 
-resetFiltersBtn.addEventListener('click', resetFilters);
+resetFiltersBtn.addEventListener('click', () => {
+    if (getDirtyCategoryCount() > 1 && !window.confirm('Reset all filter categories to their default values?')) {
+        return;
+    }
+
+    resetFilters();
+});
 shadowEnabled.addEventListener('change', () => {
     updateShadowSettings();
     applyFilters();
+    updateCategoryIndicators();
 });
 document.querySelectorAll('.js-download').forEach((button) => {
     button.addEventListener('click', downloadImage);
@@ -863,27 +980,34 @@ let sheetVisible = 64;
 let sheetDragging = false;
 let dragStartY = 0;
 let dragStartVisible = 0;
+let dragStartSnap = 'peek';
 let lastDragY = 0;
 let lastDragTime = 0;
 let dragVelocity = 0;
 let dragMoved = false;
+let sliderPeeking = false;
+let sliderPeekSnap = null;
+let sliderPeekTimer = null;
+let dragFromCategoryHeader = false;
 
 function isDesktopLayout() {
     return DESKTOP_QUERY.matches;
 }
 
 function snapHeights() {
+    const minImage = Math.round(window.innerHeight * 0.26);
+    const available = workspace.clientHeight || window.innerHeight;
+    const maxSheet = Math.max(64, available - minImage);
     return {
         peek: 64,
-        half: Math.round(window.innerHeight * 0.55),
-        full: Math.round(window.innerHeight * 0.9)
+        half: Math.min(Math.round(window.innerHeight * 0.55), maxSheet),
+        full: Math.min(Math.round(window.innerHeight * 0.9), maxSheet)
     };
 }
 
 function updateSheetScrim() {
-    const showScrim = !isDesktopLayout() && !sheet.hidden && sheetSnap === 'full';
-    sheetScrim.hidden = isDesktopLayout() || sheet.hidden;
-    sheetScrim.classList.toggle('is-visible', showScrim);
+    sheetScrim.hidden = true;
+    sheetScrim.classList.remove('is-visible');
 }
 
 function applySheetVisible(visible, animate) {
@@ -969,8 +1093,8 @@ function syncSheetForViewport() {
     }
 }
 
-sheetHeader.addEventListener('pointerdown', (event) => {
-    if (isDesktopLayout() || event.button !== 0 || event.target.closest('.tab-btn')) {
+function startSheetDrag(event, captureTarget) {
+    if (isDesktopLayout() || event.button !== 0) {
         return;
     }
 
@@ -978,11 +1102,21 @@ sheetHeader.addEventListener('pointerdown', (event) => {
     dragMoved = false;
     dragStartY = event.clientY;
     dragStartVisible = sheetVisible;
+    dragStartSnap = sheetSnap;
     lastDragY = event.clientY;
     lastDragTime = performance.now();
     dragVelocity = 0;
+    dragFromCategoryHeader = captureTarget === categorySubHeader;
     sheet.classList.remove('is-animating');
-    sheetHeader.setPointerCapture(event.pointerId);
+    captureTarget.setPointerCapture(event.pointerId);
+}
+
+sheetHeader.addEventListener('pointerdown', (event) => {
+    if (event.target.closest('.tab-btn')) {
+        return;
+    }
+
+    startSheetDrag(event, sheetHeader);
 });
 
 function onSheetPointerMove(event) {
@@ -1011,7 +1145,18 @@ function onSheetPointerUp(event) {
     sheetDragging = false;
 
     if (!dragMoved) {
+        if (dragFromCategoryHeader) {
+            return;
+        }
+
         toggleSheetFromHandle();
+        return;
+    }
+
+    const goingDown = event.clientY > dragStartY + 8 || dragVelocity < -0.05;
+    if (activeCategoryId && goingDown) {
+        showCategoryGrid();
+        setSheetSnap(dragStartSnap || sheetSnap, true);
         return;
     }
 
@@ -1022,6 +1167,17 @@ sheetHeader.addEventListener('pointermove', onSheetPointerMove);
 sheetHeader.addEventListener('pointerup', onSheetPointerUp);
 sheetHeader.addEventListener('pointercancel', onSheetPointerUp);
 
+categorySubHeader.addEventListener('pointerdown', (event) => {
+    if (event.target.closest('.category-back-btn') || event.target.closest('.category-reset-link')) {
+        return;
+    }
+
+    startSheetDrag(event, categorySubHeader);
+});
+categorySubHeader.addEventListener('pointermove', onSheetPointerMove);
+categorySubHeader.addEventListener('pointerup', onSheetPointerUp);
+categorySubHeader.addEventListener('pointercancel', onSheetPointerUp);
+
 sheetHandle.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
@@ -1029,6 +1185,11 @@ sheetHandle.addEventListener('keydown', (event) => {
     }
 
     if (event.key === 'Escape') {
+        if (activeCategoryId) {
+            showCategoryGrid();
+            return;
+        }
+
         setSheetSnap('peek');
     }
 
@@ -1075,4 +1236,71 @@ window.addEventListener('resize', () => {
     }
 });
 
+document.querySelectorAll('[data-open-category]').forEach((tile) => {
+    tile.addEventListener('click', () => {
+        const id = tile.dataset.openCategory;
+        const navigate = () => openCategory(id);
+
+        if (prefersReducedMotion.matches) {
+            navigate();
+            return;
+        }
+
+        tile.classList.add('is-pressed');
+        window.setTimeout(() => {
+            tile.classList.remove('is-pressed');
+            navigate();
+        }, 90);
+    });
+});
+
+categoryBackBtn.addEventListener('click', showCategoryGrid);
+categoryResetBtn.addEventListener('click', () => {
+    if (activeCategoryId) {
+        resetCategory(activeCategoryId);
+    }
+});
+
+function beginSliderPeek() {
+    if (isDesktopLayout() || sliderPeeking || sliderPeekTimer) {
+        return;
+    }
+
+    sliderPeekTimer = window.setTimeout(() => {
+        sliderPeekTimer = null;
+        sliderPeeking = true;
+        sliderPeekSnap = sheetSnap;
+        if (sheetSnap !== 'peek') {
+            setSheetSnap('peek', true);
+        }
+    }, 80);
+}
+
+function endSliderPeek() {
+    if (sliderPeekTimer) {
+        window.clearTimeout(sliderPeekTimer);
+        sliderPeekTimer = null;
+    }
+
+    if (!sliderPeeking) {
+        return;
+    }
+
+    const restore = sliderPeekSnap;
+    sliderPeeking = false;
+    sliderPeekSnap = null;
+    if (restore && restore !== 'peek' && !isDesktopLayout()) {
+        setSheetSnap(restore, true);
+    }
+}
+
+filtersPanel.addEventListener('pointerdown', (event) => {
+    if (event.target.matches('input[type="range"]:not(:disabled)')) {
+        beginSliderPeek();
+    }
+});
+window.addEventListener('pointerup', endSliderPeek);
+window.addEventListener('pointercancel', endSliderPeek);
+
+updateCategoryIndicators();
 syncSheetForViewport();

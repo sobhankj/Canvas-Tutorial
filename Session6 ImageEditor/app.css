@@ -10,6 +10,9 @@
     --ink-dim: #97a0b8;
     --accent: #8b7cff;
     --accent-soft: rgba(139, 124, 255, 0.16);
+    --accent-dim: rgba(139, 124, 255, 0.22);
+    --panel-2: #121622;
+    --radius: 12px;
     --mint: #5eead4;
     --danger: #f07178;
     --shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
@@ -164,6 +167,9 @@ body {
 }
 
 .workspace.is-editing {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
     padding: 0;
 }
 
@@ -272,10 +278,27 @@ body {
 }
 
 .workspace.is-editing .canvas-stage {
-    position: absolute;
-    inset: 0;
+    position: relative;
+    inset: auto;
     z-index: 1;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 26vh;
+    height: auto;
     padding: 12px;
+}
+
+.workspace.is-editing .canvas-frame,
+.workspace.is-editing .canvas-board,
+.workspace.is-editing .image-stack,
+.workspace.is-editing .image-clip {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.workspace.is-editing canvas {
+    max-width: 100%;
+    max-height: 100%;
 }
 
 .canvas-frame {
@@ -357,30 +380,21 @@ canvas {
 }
 
 .sheet-scrim {
-    position: absolute;
-    inset: 0;
-    z-index: 8;
-    background: rgba(8, 10, 16, 0.45);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 250ms ease;
-}
-
-.sheet-scrim.is-visible {
-    opacity: 1;
-    pointer-events: auto;
+    display: none;
 }
 
 .sheet {
     --sheet-visible: var(--sheet-peek);
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    position: relative;
+    right: auto;
+    bottom: auto;
+    left: auto;
     z-index: 10;
     display: flex;
     flex-direction: column;
-    height: var(--sheet-full);
+    flex-shrink: 0;
+    width: 100%;
+    height: var(--sheet-visible);
     overflow: hidden;
     background: linear-gradient(180deg, rgba(26, 31, 46, 0.98), rgba(20, 24, 36, 0.98));
     background-color: var(--panel);
@@ -388,12 +402,12 @@ canvas {
     border-bottom: none;
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.35);
-    transform: translateY(calc(100% - var(--sheet-visible)));
+    transform: none;
     touch-action: auto;
 }
 
 .sheet.is-animating {
-    transition: transform 250ms cubic-bezier(0.32, 0.72, 0, 1);
+    transition: height 250ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .sheet-header {
@@ -481,10 +495,147 @@ canvas {
     width: 100%;
 }
 
-.filters-panel {
+.sheet-panel.filters-panel {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.sheet-panel.filters-panel.is-category-open {
+    overflow: hidden;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+}
+
+.category-tile {
+    position: relative;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 92px;
+    padding: 12px 6px 10px;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: none;
+    cursor: pointer;
+    font: inherit;
+    touch-action: manipulation;
+    transition: background 120ms ease;
+}
+
+.category-tile:active,
+.category-tile.is-pressed {
+    background: var(--accent-dim);
+}
+
+.category-tile-icon {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    color: var(--accent);
+}
+
+.category-tile-icon svg {
+    width: 28px;
+    height: 28px;
+}
+
+.category-tile-label {
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.25;
+    text-align: center;
+}
+
+.category-tile-caption {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.category-tile-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+}
+
+.category-detail {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.category-sub-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+    padding: 2px 0 8px;
+    touch-action: none;
+    user-select: none;
+}
+
+.category-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    padding: 6px 0;
+    color: var(--text);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 650;
+}
+
+.category-back-btn svg {
+    flex-shrink: 0;
+}
+
+.category-reset-link {
+    padding: 6px 0;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.category-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     gap: 14px;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+}
+
+.category-detail .filter-group {
+    border-top: none;
+    padding-top: 0;
 }
 
 .panel-header {
@@ -782,10 +933,13 @@ input[type="color"]::-moz-color-swatch {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .sheet.is-animating,
-    .sheet-scrim {
+    .sheet.is-animating {
         transition-duration: 160ms;
         transition-timing-function: ease;
+    }
+
+    .category-tile {
+        transition: none;
     }
 
     .dropzone {
@@ -841,6 +995,7 @@ input[type="color"]::-moz-color-swatch {
 
     .workspace.is-editing {
         display: flex;
+        flex-direction: row;
         align-items: flex-start;
         justify-content: center;
         gap: 20px;
@@ -885,6 +1040,11 @@ input[type="color"]::-moz-color-swatch {
         max-height: calc(100vh - 180px);
     }
 
+    .workspace.is-editing canvas {
+        max-width: min(100%, calc(100vw - 420px));
+        max-height: calc(100vh - 180px);
+    }
+
     .sheet {
         position: relative;
         right: auto;
@@ -910,6 +1070,16 @@ input[type="color"]::-moz-color-swatch {
     .filters-panel {
         display: flex;
         overflow: auto;
+    }
+
+    .sheet-panel.filters-panel {
+        overflow: auto;
+    }
+
+    .category-detail,
+    .category-body {
+        overflow: visible;
+        flex: none;
     }
 
     .sheet-panel {

@@ -1,5 +1,15 @@
+:root {
+    --color-primary: #7b5ea7;
+    --color-secondary: #9b7bc8;
+    --color-accent: #c4a8e8;
+    --color-background: #faf8ff;
+    --color-surface: #ffffff;
+    --color-text: #2d1f4a;
+}
+
 body {
     margin: 0;
     overflow: hidden;
+    background: var(--color-background);
+    color: var(--color-text);
 }
-

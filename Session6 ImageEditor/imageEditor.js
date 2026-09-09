@@ -64,6 +64,13 @@ let objectUrl = null;
 let sourceFileName = 'image';
 let motionAngle = 0;
 let canvasFxTimer = null;
+let isBusy = false;
+
+const progressOverlay = document.getElementById('progressOverlay');
+const progressLabel = document.getElementById('progressLabel');
+const progressBar = document.getElementById('progressBar');
+const progressFill = document.getElementById('progressFill');
+const progressValue = document.getElementById('progressValue');
 
 const grainDataUri = createGrainDataUri();
 const grainImage = new Image();
@@ -113,6 +120,65 @@ function setDragging(isDragging) {
 
 function showError(visible) {
     dropError.hidden = !visible;
+}
+
+function waitFrame() {
+    return new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+}
+
+function waitMs(ms) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+}
+
+function setProgress(percent) {
+    const value = Math.max(0, Math.min(100, Math.round(percent)));
+    progressFill.style.width = `${value}%`;
+    progressValue.textContent = `${value}%`;
+    progressBar.setAttribute('aria-valuenow', String(value));
+}
+
+function showProgress(label) {
+    isBusy = true;
+    progressLabel.textContent = label;
+    setProgress(0);
+    progressOverlay.hidden = false;
+    progressOverlay.setAttribute('aria-busy', 'true');
+}
+
+function hideProgress() {
+    isBusy = false;
+    progressOverlay.hidden = true;
+    progressOverlay.setAttribute('aria-busy', 'false');
+    setProgress(0);
+}
+
+function readFileWithProgress(file, onProgress) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onprogress = (event) => {
+            if (event.lengthComputable && event.total > 0) {
+                onProgress((event.loaded / event.total) * 55);
+            }
+        };
+
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error || new Error('Could not read the file.'));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+function decodeImage(url) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Could not decode the image.'));
+        img.src = url;
+    });
 }
 
 function showEditor(file, img) {
@@ -569,20 +635,41 @@ function renderFilteredImage() {
     return exportCanvas;
 }
 
+function canvasToBlob(sourceCanvas) {
+    return new Promise((resolve, reject) => {
+        sourceCanvas.toBlob((blob) => {
+            if (blob) {
+                resolve(blob);
+                return;
+            }
+
+            reject(new Error('Could not create the image file.'));
+        }, 'image/png');
+    });
+}
+
 function getDownloadName() {
     const baseName = sourceFileName.replace(/\.[^.]+$/, '') || 'image';
     return `${baseName}-edited.png`;
 }
 
-function downloadImage() {
-    if (!sourceImage) {
+async function downloadImage() {
+    if (!sourceImage || isBusy) {
         return;
     }
 
-    renderFilteredImage().toBlob((blob) => {
-        if (!blob) {
-            return;
-        }
+    showProgress('Downloading image');
+
+    try {
+        setProgress(10);
+        await waitFrame();
+
+        const exportCanvas = renderFilteredImage();
+        setProgress(72);
+        await waitFrame();
+
+        const blob = await canvasToBlob(exportCanvas);
+        setProgress(90);
 
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -590,7 +677,14 @@ function downloadImage() {
         link.download = getDownloadName();
         link.click();
         URL.revokeObjectURL(url);
-    }, 'image/png');
+
+        setProgress(100);
+        await waitMs(220);
+    } catch (error) {
+        console.error(error);
+    } finally {
+        hideProgress();
+    }
 }
 
 function drawImageToCanvas(img) {
@@ -606,35 +700,54 @@ function drawImageToCanvas(img) {
     duotoneCtx.drawImage(img, 0, 0, width, height);
 }
 
-function loadImageFile(file) {
+async function loadImageFile(file) {
     if (!isImageFile(file)) {
         showError(!dropzone.hidden);
         return;
     }
 
-    showError(false);
-
-    if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
+    if (isBusy) {
+        return;
     }
 
-    objectUrl = URL.createObjectURL(file);
-    const img = new Image();
+    showError(false);
+    showProgress('Uploading image');
 
-    img.onload = () => {
+    try {
+        setProgress(4);
+        await waitFrame();
+
+        const buffer = await readFileWithProgress(file, setProgress);
+        setProgress(58);
+        await waitFrame();
+
+        if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+        }
+
+        const blob = new Blob([buffer], { type: file.type || 'image/*' });
+        objectUrl = URL.createObjectURL(blob);
+
+        const img = await decodeImage(objectUrl);
+        setProgress(82);
+        await waitFrame();
+
         sourceImage = img;
         drawImageToCanvas(img);
         showEditor(file, img);
         scheduleCanvasEffects(true);
-    };
-
-    img.onerror = () => {
+        setProgress(100);
+        await waitMs(200);
+    } catch (error) {
         showError(true);
-        URL.revokeObjectURL(objectUrl);
-        objectUrl = null;
-    };
-
-    img.src = objectUrl;
+        if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            objectUrl = null;
+        }
+        console.error(error);
+    } finally {
+        hideProgress();
+    }
 }
 
 fileInput.addEventListener('change', () => {

@@ -366,6 +366,16 @@
         </main>
     </div>
 
+    <div class="progress-overlay" id="progressOverlay" hidden role="status" aria-live="assertive" aria-busy="false">
+        <div class="progress-card">
+            <p class="progress-title" id="progressLabel">Uploading image</p>
+            <div class="progress-track" id="progressBar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p class="progress-percent" id="progressValue">0%</p>
+        </div>
+    </div>
+
     <script src="imageEditor.js"></script>
 </body>
 </html>

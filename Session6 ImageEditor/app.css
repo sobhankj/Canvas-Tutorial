@@ -705,6 +705,57 @@ input[type="color"]::-moz-color-swatch {
     border-radius: 5px;
 }
 
+.progress-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: grid;
+    place-items: center;
+    background: rgba(8, 10, 16, 0.62);
+    backdrop-filter: blur(8px);
+}
+
+.progress-card {
+    width: min(360px, calc(100% - 40px));
+    padding: 22px 20px 18px;
+    background: linear-gradient(180deg, rgba(26, 31, 46, 0.98), rgba(20, 24, 36, 0.98));
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+}
+
+.progress-title {
+    margin: 0 0 16px;
+    color: var(--text);
+    font-size: 15px;
+    text-align: center;
+}
+
+.progress-track {
+    height: 8px;
+    overflow: hidden;
+    background: #2c3348;
+    border-radius: 999px;
+}
+
+.progress-fill {
+    width: 0%;
+    height: 100%;
+    background: var(--accent);
+    border-radius: inherit;
+    box-shadow: 0 0 12px var(--accent-soft);
+    transition: width 160ms ease;
+}
+
+.progress-percent {
+    margin: 12px 0 0;
+    color: var(--mint);
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .sheet.is-animating,
     .sheet-scrim {
@@ -713,6 +764,10 @@ input[type="color"]::-moz-color-swatch {
     }
 
     .dropzone {
+        transition: none;
+    }
+
+    .progress-fill {
         transition: none;
     }
 }
